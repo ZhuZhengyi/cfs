@@ -71,6 +71,11 @@ create_dp() {
     echo "ok"
 }
 
+LtpOut=/tmp/ltprun.out
+LtpLog=/tmp/ltprun.log
+LtpErr=/tmp/ltprun.err
+LtpLogConf=/tmp/ltprun.log.tconf
+
 print_error_info() {
     echo "------ err ----"
     ps -ef
@@ -83,6 +88,12 @@ print_error_info() {
     stat $MntPoint
     ls -l $MntPoint
     ls -l $LTPTestDir
+    echo "cat /tmp/ltprun.log"
+    cat $LtpLog 
+    echo "cat /tmp/ltprun.err"
+    cat $LtpErr
+    echo "cat /tmp/ltprun.tconf"
+    cat $LtpLogConf 
 }
 
 start_client() {
@@ -100,10 +111,10 @@ start_client() {
 }
 
 wait_proc_done() {
-    proc_name=$1
+    #proc_name=$1
+    pid=$1
     logfile=$2
     logfile2=${logfile}-2
-    logfile3=${logfile}-3
     maxtime=${3:-24000}
     checktime=${4:-60}
     retfile=${5:-"/tmp/ltpret"}
@@ -112,7 +123,7 @@ wait_proc_done() {
     emptyCount=0
     lastlog=""
     for i in $(seq 1 $maxtime) ; do
-        if ! `ps -ef  | grep -v "grep" | grep -q "$proc_name" ` ; then
+        if ! `ps $pid >/dev/null` ; then
             echo "$proc_name run done"
             timeout=0
             break
@@ -121,6 +132,7 @@ wait_proc_done() {
         ((pout+=1))
         if [ $(cat $logfile | wc -l) -gt 0  ] ; then
             pout=0
+            emptyCount=0
             cat $logfile && cat $logfile >> $logfile2  && > $logfile
         fi
         if [[ $pout -ge $checktime ]] ; then
@@ -132,37 +144,31 @@ wait_proc_done() {
             echo "$proc_name no output multitime"
             emptyCount=0
             print_error_info
-            echo "cat /tmp/ltprun.log"
-            cat /tmp/ltprun.log
-            echo "cat /tmp/ltprun.err"
-            cat /tmp/ltprun.err
-            echo "cat /tmp/ltprun.tconf"
-            cat /tmp/ltprun.log.tconf
         fi
     done
     if [[ $timeout -ne 0 ]] ;then
         echo "$proc_name run timeout"
         print_error_info
-        echo "cat /tmp/ltprun.log"
-        cat /tmp/ltprun.log
-        echo "cat /tmp/ltprun.err"
-        cat /tmp/ltprun.err
-        echo "cat /tmp/ltprun.tconf"
-        cat /tmp/ltprun.log.tconf
         exit 1
     fi
-    ret=$(cat /tmp/ltpret)
+
+    ret=0
+    if  `cat $logfile2 | grep -q "NOPASS"` ; then
+        ret=1
+        cat $logfile2
+        print_error_info
+    fi
+    #ret=$(cat $LtpLog | grep N)
     exit $ret
 }
 
 run_ltptest() {
-    #yum install -y psmisc >/dev/null
     echo "run ltp test"
     LTPTestDir=$MntPoint/ltptest
-    LtpLog=/tmp/ltp.log
     mkdir -p $LTPTestDir
-    nohup /bin/sh -c " /opt/ltp/runltp -pq -f fs -d $LTPTestDir -l /tmp/ltprun.log -C /tmp/ltprun.err -T /tmp/ltprun.log.tconf > $LtpLog 2>&1; echo $? > /tmp/ltpret " &
-    wait_proc_done "runltp" $LtpLog
+    nohup /opt/ltp/runltp -pq -f fs -d $LTPTestDir -l $LtpLog -C $LtpErr -T $LtpLogConf > $LtpOut 2>&1 &
+    pid=$!
+    wait_proc_done $pid $LtpLog
 }
 
 getLeaderAddr
