@@ -116,28 +116,31 @@ wait_proc_done() {
     logfile=$2
     logfile2=${logfile}-2
     maxtime=${3:-24000}
-    checktime=${4:-60}
-    retfile=${5:-"/tmp/ltpret"}
+    checktime=${4:-120}
     timeout=1
     pout=0
     emptyCount=0
-    lastlog=""
     for i in $(seq 1 $maxtime) ; do
+        # check proc alive
         if ! `ps $pid >/dev/null` ; then
-            echo "$proc_name run done"
+            echo "ltptest run done"
             timeout=0
             break
         fi
         sleep 1
         ((pout+=1))
-        if [ $(cat $logfile | wc -l) -gt 0  ] ; then
-            pout=0
-            emptyCount=0
-            cat $logfile && cat $logfile >> $logfile2  && > $logfile
+        # print out log
+        if [ -e $logfile ] ; then
+            if [ $(cat $logfile | wc -l) -gt 0  ] ; then
+                pout=0
+                emptyCount=0
+                cat $logfile && cat $logfile >> $logfile2  && > $logfile
+            fi
         fi
+        # check no output
         if [[ $pout -ge $checktime ]] ; then
             ((emptyCount+=1))
-            echo -n "."
+            echo "."
             pout=0
         fi
         if [[ $emptyCount -gt 5 ]] ; then
@@ -146,6 +149,7 @@ wait_proc_done() {
             print_error_info
         fi
     done
+    # run timeout
     if [[ $timeout -ne 0 ]] ;then
         echo "$proc_name run timeout"
         print_error_info
