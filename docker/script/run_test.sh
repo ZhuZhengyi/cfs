@@ -73,6 +73,7 @@ create_dp() {
 
 print_error_info() {
     echo "------ err ----"
+    ps -ef
     cat /cfs/log/cfs.out
     cat /cfs/log/client/client_info.log
     cat /cfs/log/client/client_error.log
@@ -108,6 +109,7 @@ wait_proc_done() {
     retfile=${5:-"/tmp/ltpret"}
     timeout=1
     pout=0
+    emptyCount=0
     lastlog=""
     for i in $(seq 1 $maxtime) ; do
         if ! `ps -ef  | grep -v "grep" | grep -q "$proc_name" ` ; then
@@ -122,13 +124,23 @@ wait_proc_done() {
             cat $logfile && cat $logfile >> $logfile2  && > $logfile
         fi
         if [[ $pout -ge $checktime ]] ; then
+            ((emptyCount+=1))
             echo -n "."
             pout=0
+        fi
+        if [[ $emptyCount -ge 5 ]] ; then
+            emptyCount=0
+            cat /tmp/ltprun.log
+            cat /tmp/ltprun.err
+            cat /tmp/ltprun.log.tconf
+            print_error_info
         fi
     done
     if [[ $timeout -eq 1 ]] ;then
         echo "$proc_name run timeout"
         cat /tmp/ltprun.log
+        cat /tmp/ltprun.err
+        cat /tmp/ltprun.log.tconf
         print_error_info
         exit 1
     fi
@@ -142,7 +154,7 @@ run_ltptest() {
     LTPTestDir=$MntPoint/ltptest
     LtpLog=/tmp/ltp.log
     mkdir -p $LTPTestDir
-    nohup /bin/sh -c " /opt/ltp/runltp -pq -f fs -d $LTPTestDir -l /tmp/ltprun.log > $LtpLog 2>&1; echo $? > /tmp/ltpret " &
+    nohup /bin/sh -c " /opt/ltp/runltp -pq -f fs -d $LTPTestDir -l /tmp/ltprun.log -C /tmp/ltprun.err -T /tmp/ltprun.log.tconf > $LtpLog 2>&1; echo $? > /tmp/ltpret " &
     wait_proc_done "runltp" $LtpLog
 }
 
