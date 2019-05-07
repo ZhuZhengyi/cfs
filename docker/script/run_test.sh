@@ -82,7 +82,7 @@ print_error_info() {
     cat /cfs/log/cfs.out
     cat /cfs/log/client/client_info.log
     cat /cfs/log/client/client_error.log
-    cat /cfs/log/client/client_debug.log
+    tail -100 /cfs/log/client/client_debug.log
     curl -s "http://$LeaderAddr/admin/getCluster" | jq
     mount
     df -h
