@@ -4,6 +4,6 @@
 	"volName": "ltptest",
     "owner": "ltptest",
 	"logDir": "/cfs/log",
-	"logLevel": "info",
+	"logLevel": "debug",
 	"profport": "17410"
 }

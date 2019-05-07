@@ -82,6 +82,7 @@ print_error_info() {
     cat /cfs/log/cfs.out
     cat /cfs/log/client/client_info.log
     cat /cfs/log/client/client_error.log
+    cat /cfs/log/client/client_debug.log
     curl -s "http://$LeaderAddr/admin/getCluster" | jq
     mount
     df -h
@@ -89,11 +90,11 @@ print_error_info() {
     ls -l $MntPoint
     ls -l $LTPTestDir
     echo "cat /tmp/ltprun.log"
-    cat $LtpLog 
+    cat $LtpLog
     echo "cat /tmp/ltprun.err"
     cat $LtpErr
     echo "cat /tmp/ltprun.tconf"
-    cat $LtpLogConf 
+    cat $LtpLogConf
 }
 
 start_client() {
@@ -116,7 +117,7 @@ wait_proc_done() {
     logfile=$2
     logfile2=${logfile}-2
     maxtime=${3:-24000}
-    checktime=${4:-120}
+    checktime=${4:-60}
     timeout=1
     pout=0
     emptyCount=0
