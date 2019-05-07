@@ -120,6 +120,7 @@ wait_proc_done() {
     timeout=1
     pout=0
     emptyCount=0
+    dotout=0
     for i in $(seq 1 $maxtime) ; do
         # check proc alive
         if ! `ps $pid >/dev/null` ; then
@@ -134,14 +135,19 @@ wait_proc_done() {
             if [ $(cat $logfile | wc -l) -gt 0  ] ; then
                 pout=0
                 emptyCount=0
+                if [ $dotout -ne 0 ] ; then
+                    dotout=0
+                    echo " "
+                fi
                 cat $logfile && cat $logfile >> $logfile2  && > $logfile
             fi
         fi
         # check no output
         if [[ $pout -ge $checktime ]] ; then
             ((emptyCount+=1))
-            echo "."
+            echo -n "."
             pout=0
+            dotout=1
         fi
         if [[ $emptyCount -gt 5 ]] ; then
             echo "$proc_name no output multitime"
@@ -162,7 +168,6 @@ wait_proc_done() {
         cat $logfile2
         print_error_info
     fi
-    #ret=$(cat $LtpLog | grep N)
     exit $ret
 }
 
