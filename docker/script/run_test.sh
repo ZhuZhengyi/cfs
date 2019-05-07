@@ -100,11 +100,10 @@ start_client() {
 
 wait_proc_done() {
     proc_name=$1
-    pid=$( ps -ef | grep "$proc_name" | grep -v "grep" | awk '{print $2}' )
     logfile=$2
     logfile2=${logfile}-2
     logfile3=${logfile}-3
-    maxtime=${3:-29000}
+    maxtime=${3:-24000}
     checktime=${4:-60}
     retfile=${5:-"/tmp/ltpret"}
     timeout=1
@@ -120,8 +119,7 @@ wait_proc_done() {
         ((pout+=1))
         if [ $(cat $logfile | wc -l) -gt 0  ] ; then
             pout=0
-            cat $logfile > $logfile2 && cat $logfile2 >> $logfile3 && > $logfile
-            cat $logfile2 && rm -f $logfile2
+            cat $logfile && cat $logfile >> $logfile2  && > $logfile
         fi
         if [[ $pout -ge $checktime ]] ; then
             echo -n "."
@@ -130,6 +128,8 @@ wait_proc_done() {
     done
     if [[ $timeout -eq 1 ]] ;then
         echo "$proc_name run timeout"
+        cat /tmp/ltprun.log
+        print_error_info
         exit 1
     fi
     ret=$(cat /tmp/ltpret)
@@ -142,7 +142,7 @@ run_ltptest() {
     LTPTestDir=$MntPoint/ltptest
     LtpLog=/tmp/ltp.log
     mkdir -p $LTPTestDir
-    nohup /bin/sh -c " /opt/ltp/runltp -pq -f fs -d $LTPTestDir > $LtpLog 2>&1; echo $? > /tmp/ltpret " &
+    nohup /bin/sh -c " /opt/ltp/runltp -pq -f fs -d $LTPTestDir -l /tmp/ltprun.log > $LtpLog 2>&1; echo $? > /tmp/ltpret " &
     wait_proc_done "runltp" $LtpLog
 }
 
