@@ -128,20 +128,27 @@ wait_proc_done() {
             echo -n "."
             pout=0
         fi
-        if [[ $emptyCount -ge 5 ]] ; then
+        if [[ $emptyCount -gt 5 ]] ; then
+            echo "$proc_name no output multitime"
             emptyCount=0
-            cat /tmp/ltprun.log
-            cat /tmp/ltprun.err
-            cat /tmp/ltprun.log.tconf
             print_error_info
+            echo "cat /tmp/ltprun.log"
+            cat /tmp/ltprun.log
+            echo "cat /tmp/ltprun.err"
+            cat /tmp/ltprun.err
+            echo "cat /tmp/ltprun.tconf"
+            cat /tmp/ltprun.log.tconf
         fi
     done
-    if [[ $timeout -eq 1 ]] ;then
+    if [[ $timeout -ne 0 ]] ;then
         echo "$proc_name run timeout"
-        cat /tmp/ltprun.log
-        cat /tmp/ltprun.err
-        cat /tmp/ltprun.log.tconf
         print_error_info
+        echo "cat /tmp/ltprun.log"
+        cat /tmp/ltprun.log
+        echo "cat /tmp/ltprun.err"
+        cat /tmp/ltprun.err
+        echo "cat /tmp/ltprun.tconf"
+        cat /tmp/ltprun.log.tconf
         exit 1
     fi
     ret=$(cat /tmp/ltpret)
