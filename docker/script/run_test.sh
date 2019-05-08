@@ -80,8 +80,8 @@ print_error_info() {
     echo "------ err ----"
     ps -ef
     cat /cfs/log/cfs.out
-    cat /cfs/log/client/client_info.log
-    cat /cfs/log/client/client_error.log
+    tail -100 /cfs/log/client/client_info.log
+    tail -100 /cfs/log/client/client_error.log
     tail -100 /cfs/log/client/client_debug.log
     curl -s "http://$LeaderAddr/admin/getCluster" | jq
     mount
