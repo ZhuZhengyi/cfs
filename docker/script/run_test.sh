@@ -86,6 +86,7 @@ print_error_info() {
     curl -s "http://$LeaderAddr/admin/getCluster" | jq
     mount
     df -h
+    top -n 1
     stat $MntPoint
     ls -l $MntPoint
     ls -l $LTPTestDir
