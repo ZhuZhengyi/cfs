@@ -90,8 +90,8 @@ print_error_info() {
     stat $MntPoint
     ls -l $MntPoint
     ls -l $LTPTestDir
-    echo "cat /tmp/ltprun.log"
-    cat $LtpLog
+    echo "cat /tmp/ltprun.out"
+    cat $LtpOut
     echo "cat /tmp/ltprun.err"
     cat $LtpErr
     echo "cat /tmp/ltprun.tconf"
