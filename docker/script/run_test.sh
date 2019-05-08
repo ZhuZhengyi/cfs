@@ -122,7 +122,7 @@ wait_proc_done() {
     pout=0
     emptyCount=0
     dotout=0
-    for i in $(seq 1 $maxtime) ; do
+    for ((i=0; i<$maxtime; i++)) ; do
         # check proc alive
         if ! `ps $pid >/dev/null` ; then
             echo "ltptest run done"
@@ -164,7 +164,7 @@ wait_proc_done() {
     fi
 
     ret=0
-    if  `cat $logfile2 | grep -q "NOPASS"` ; then
+    if  `cat $logfile2 | grep -q "FAIL"` ; then
         ret=1
         cat $logfile2
         print_error_info
