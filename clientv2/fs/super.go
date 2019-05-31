@@ -30,6 +30,7 @@ import (
 
 type Super struct {
 	cluster     string
+	localIP     string
 	volname     string
 	owner       string
 	ic          *InodeCache
@@ -59,6 +60,7 @@ func NewSuper(volname, owner, master string, icacheTimeout, lookupValid, attrVal
 	s.volname = volname
 	s.owner = owner
 	s.cluster = s.mw.Cluster()
+	s.localIP = s.mw.LocalIP()
 	inodeExpiration := DefaultInodeExpiration
 	if icacheTimeout >= 0 {
 		inodeExpiration = time.Duration(icacheTimeout) * time.Second
