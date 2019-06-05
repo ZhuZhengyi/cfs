@@ -16,6 +16,7 @@ package fs
 
 import (
 	"os"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -93,6 +94,8 @@ func (d *Dir) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.Cr
 	d.super.nodeCache[inode.ino] = child
 	d.super.fslock.Unlock()
 
+	atomic.AddUint32(&d.inode.nlink, 1)
+
 	elapsed := time.Since(start)
 	log.LogDebugf("TRACE Create: parent(%v) req(%v) resp(%v) ino(%v) (%v)ns", d.inode.ino, req, resp, inode.ino, elapsed.Nanoseconds())
 	return child, child, nil
@@ -127,6 +130,8 @@ func (d *Dir) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, error
 	d.super.nodeCache[inode.ino] = child
 	d.super.fslock.Unlock()
 
+	atomic.AddUint32(&d.inode.nlink, 1)
+
 	elapsed := time.Since(start)
 	log.LogDebugf("TRACE Mkdir: parent(%v) req(%v) ino(%v) (%v)ns", d.inode.ino, req, inode.ino, elapsed.Nanoseconds())
 	return child, nil
@@ -147,6 +152,8 @@ func (d *Dir) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 		d.super.orphan.Put(info.Inode)
 		log.LogDebugf("Remove: add to orphan inode list, ino(%v)", info.Inode)
 	}
+
+	atomic.AddUint32(&d.inode.nlink, ^uint32(0))
 
 	elapsed := time.Since(start)
 	log.LogDebugf("TRACE Remove: parent(%v) req(%v) inode(%v) (%v)ns", d.inode.ino, req, info, elapsed.Nanoseconds())
@@ -252,6 +259,9 @@ func (d *Dir) Rename(ctx context.Context, req *fuse.RenameRequest, newDir fs.Nod
 		return ParseError(err)
 	}
 
+	atomic.AddUint32(&d.inode.nlink, ^uint32(0))
+	atomic.AddUint32(&dstDir.inode.nlink, 1)
+
 	elapsed := time.Since(start)
 	log.LogDebugf("TRACE Rename: SrcParent(%v) OldName(%v) DstParent(%v) NewName(%v) (%v)ns", d.inode.ino, req.OldName, dstDir.inode.ino, req.NewName, elapsed.Nanoseconds())
 	return nil
@@ -302,6 +312,8 @@ func (d *Dir) Mknod(ctx context.Context, req *fuse.MknodRequest) (fs.Node, error
 	d.super.nodeCache[inode.ino] = child
 	d.super.fslock.Unlock()
 
+	atomic.AddUint32(&d.inode.nlink, 1)
+
 	elapsed := time.Since(start)
 	log.LogDebugf("TRACE Mknod: parent(%v) req(%v) ino(%v) (%v)ns", d.inode.ino, req, inode.ino, elapsed.Nanoseconds())
 	return child, nil
@@ -324,6 +336,8 @@ func (d *Dir) Symlink(ctx context.Context, req *fuse.SymlinkRequest) (fs.Node, e
 	d.super.fslock.Lock()
 	d.super.nodeCache[inode.ino] = child
 	d.super.fslock.Unlock()
+
+	atomic.AddUint32(&d.inode.nlink, 1)
 
 	elapsed := time.Since(start)
 	log.LogDebugf("TRACE Symlink: parent(%v) req(%v) ino(%v) (%v)ns", parentIno, req, inode.ino, elapsed.Nanoseconds())
