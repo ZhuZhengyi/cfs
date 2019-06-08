@@ -48,6 +48,7 @@ type ReplProtocol struct {
 	sourceConn *net.TCPConn
 	exitC      chan bool
 	exited     int32
+	exitedMu   sync.RWMutex
 
 	followerConnects map[string]*FollowerTransport
 	lock             sync.RWMutex
@@ -66,6 +67,7 @@ type FollowerTransport struct {
 	sendCh   chan *FollowerPacket
 	recvCh   chan *FollowerPacket
 	exitCh   chan struct{}
+	exitedMu sync.RWMutex
 	isclosed int32
 }
 
@@ -104,10 +106,12 @@ func (ft *FollowerTransport) serverWriteToFollower() {
 			}
 			ft.recvCh <- p
 		case <-ft.exitCh:
+			ft.exitedMu.Lock()
 			if atomic.AddInt32(&ft.isclosed, -1) == FollowerTransportExited {
 				ft.conn.Close()
 				atomic.StoreInt32(&ft.isclosed, FollowerTransportExited)
 			}
+			ft.exitedMu.Unlock()
 			return
 		}
 	}
@@ -119,10 +123,12 @@ func (ft *FollowerTransport) serverReadFromFollower() {
 		case p := <-ft.recvCh:
 			ft.readFollowerResult(p)
 		case <-ft.exitCh:
+			ft.exitedMu.Lock()
 			if atomic.AddInt32(&ft.isclosed, -1) == FollowerTransportExited {
 				ft.conn.Close()
 				atomic.StoreInt32(&ft.isclosed, FollowerTransportExited)
 			}
+			ft.exitedMu.Unlock()
 			return
 		}
 	}
@@ -157,8 +163,10 @@ func (ft *FollowerTransport) readFollowerResult(request *FollowerPacket) (err er
 }
 
 func (ft *FollowerTransport) Destory() {
+	ft.exitedMu.Lock()
 	atomic.StoreInt32(&ft.isclosed, FollowerTransportExiting)
 	close(ft.exitCh)
+	ft.exitedMu.Unlock()
 	for {
 		if atomic.LoadInt32(&ft.isclosed) == FollowerTransportExited {
 			break
@@ -203,10 +211,12 @@ func (rp *ReplProtocol) ServerConn() {
 	)
 	defer func() {
 		rp.Stop()
+		rp.exitedMu.Lock()
 		if atomic.AddInt32(&rp.exited, -1) == ReplHasExited {
 			rp.sourceConn.Close()
 			rp.cleanResource()
 		}
+		rp.exitedMu.Unlock()
 	}()
 	for {
 		select {
@@ -228,10 +238,12 @@ func (rp *ReplProtocol) ReceiveResponseFromFollowersGoRoutine() {
 		case <-rp.ackCh:
 			rp.checkLocalResultAndReciveAllFollowerResponse()
 		case <-rp.exitC:
+			rp.exitedMu.Lock()
 			if atomic.AddInt32(&rp.exited, -1) == ReplHasExited {
 				rp.sourceConn.Close()
 				rp.cleanResource()
 			}
+			rp.exitedMu.Unlock()
 			return
 		}
 	}
@@ -292,7 +304,7 @@ func (rp *ReplProtocol) OperatorAndForwardPktGoRoutine() {
 	for {
 		select {
 		case request := <-rp.toBeProcessedCh:
-			if !request.isForwardPacket() {
+			if !request.IsForwardPacket() {
 				rp.operatorFunc(request, rp.sourceConn)
 				rp.putResponse(request)
 			} else {
@@ -307,10 +319,12 @@ func (rp *ReplProtocol) OperatorAndForwardPktGoRoutine() {
 				}
 			}
 		case <-rp.exitC:
+			rp.exitedMu.Lock()
 			if atomic.AddInt32(&rp.exited, -1) == ReplHasExited {
 				rp.sourceConn.Close()
 				rp.cleanResource()
 			}
+			rp.exitedMu.Unlock()
 			return
 		}
 	}
@@ -323,10 +337,12 @@ func (rp *ReplProtocol) writeResponseToClientGoRroutine() {
 		case request := <-rp.responseCh:
 			rp.writeResponse(request)
 		case <-rp.exitC:
+			rp.exitedMu.Lock()
 			if atomic.AddInt32(&rp.exited, -1) == ReplHasExited {
 				rp.sourceConn.Close()
 				rp.cleanResource()
 			}
+			rp.exitedMu.Unlock()
 			return
 		}
 	}
@@ -399,6 +415,8 @@ func (rp *ReplProtocol) writeResponse(reply *Packet) {
 
 // Stop stops the replication protocol.
 func (rp *ReplProtocol) Stop() {
+	rp.exitedMu.Lock()
+	defer rp.exitedMu.Unlock()
 	if atomic.LoadInt32(&rp.exited) == ReplRuning {
 		if rp.exitC != nil {
 			close(rp.exitC)
