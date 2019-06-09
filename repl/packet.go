@@ -104,11 +104,6 @@ func (p *Packet) clean() {
 		proto.Buffers.Put(p.OrgBuffer)
 		p.OrgBuffer = nil
 	}
-	for i := 0; i < len(p.followersAddrs); i++ {
-		if p.followerPackets[i] != nil {
-			close(p.followerPackets[i].respCh)
-		}
-	}
 }
 
 func copyPacket(src *Packet, dst *FollowerPacket) {

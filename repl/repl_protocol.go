@@ -139,9 +139,9 @@ func (ft *FollowerTransport) readFollowerResult(request *FollowerPacket) (err er
 	reply := NewPacket()
 	defer func() {
 		reply.clean()
-		request.respCh <- err
 	}()
 	if err = reply.ReadFromConn(ft.conn, proto.ReadDeadlineTime); err != nil {
+		request.respCh <- err
 		return
 	}
 
@@ -149,14 +149,17 @@ func (ft *FollowerTransport) readFollowerResult(request *FollowerPacket) (err er
 		reply.ExtentOffset != request.ExtentOffset || reply.CRC != request.CRC || reply.ExtentID != request.ExtentID {
 		err = fmt.Errorf(ActionCheckReply+" request(%v), reply(%v)  ", request.GetUniqueLogId(),
 			reply.GetUniqueLogId())
+		request.respCh <- err
+
 		return
 	}
 
 	if reply.IsErrPacket() {
 		err = fmt.Errorf(string(reply.Data[:reply.Size]))
+		request.respCh <- err
 		return
 	}
-
+	request.respCh <- err
 	log.LogDebugf("action[ActionReceiveFromFollower] %v.", reply.LogMessage(ActionReceiveFromFollower,
 		ft.addr, request.StartT, err))
 	return
