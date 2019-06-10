@@ -17,7 +17,6 @@ package fs
 import (
 	"fmt"
 	"os"
-	"sync/atomic"
 	"time"
 
 	"bazil.org/fuse"
@@ -80,7 +79,7 @@ func (s *Super) InodeGet(ino uint64) (*Inode, error) {
 
 // String returns the string format of the inode.
 func (inode *Inode) String() string {
-	return fmt.Sprintf("ino(%v) mode(%v) size(%v) nlink(%v) gen(%v) uid(%v) gid(%v) exp(%v) mtime(%v) target(%v)", inode.ino, inode.mode, inode.size, atomic.LoadUint32(&inode.nlink), inode.gen, inode.uid, inode.gid, time.Unix(0, inode.expiration).Format(LogTimeFormat), inode.mtime, inode.target)
+	return fmt.Sprintf("ino(%v) mode(%v) size(%v) nlink(%v) gen(%v) uid(%v) gid(%v) exp(%v) mtime(%v) target(%v)", inode.ino, inode.mode, inode.size, inode.nlink, inode.gen, inode.uid, inode.gid, time.Unix(0, inode.expiration).Format(LogTimeFormat), inode.mtime, inode.target)
 }
 
 func (inode *Inode) setattr(req *fuse.SetattrRequest) (valid uint32) {
@@ -104,7 +103,7 @@ func (inode *Inode) setattr(req *fuse.SetattrRequest) (valid uint32) {
 func (inode *Inode) fill(info *proto.InodeInfo) {
 	inode.ino = info.Inode
 	inode.size = info.Size
-	atomic.StoreUint32(&inode.nlink, info.Nlink)
+	inode.nlink = info.Nlink
 	inode.uid = info.Uid
 	inode.gid = info.Gid
 	inode.gen = info.Generation
@@ -117,7 +116,7 @@ func (inode *Inode) fill(info *proto.InodeInfo) {
 
 func (inode *Inode) fillAttr(attr *fuse.Attr) {
 	attr.Valid = AttrValidDuration
-	attr.Nlink = atomic.LoadUint32(&inode.nlink)
+	attr.Nlink = inode.nlink
 	attr.Inode = inode.ino
 	attr.Mode = inode.mode
 	attr.Size = inode.size
