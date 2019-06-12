@@ -16,7 +16,7 @@ package util
 
 import (
 	"bytes"
-	json "github.com/intel-go/fastjson"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/chubaofs/chubaofs/util/log"

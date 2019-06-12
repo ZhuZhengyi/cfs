@@ -15,7 +15,7 @@
 package ump
 
 import (
-	json "github.com/intel-go/fastjson"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"

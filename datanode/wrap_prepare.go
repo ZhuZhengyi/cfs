@@ -15,7 +15,7 @@
 package datanode
 
 import (
-	json "github.com/intel-go/fastjson"
+	"encoding/json"
 	"fmt"
 	"github.com/chubaofs/chubaofs/proto"
 	"github.com/chubaofs/chubaofs/repl"
@@ -60,7 +60,7 @@ func (s *DataNode) checkStoreMode(p *repl.Packet) (err error) {
 }
 
 func (s *DataNode) checkCrc(p *repl.Packet) (err error) {
-	if !p.IsWriteOperation() {
+	if !isWriteOperation(p) {
 		return
 	}
 	crc := crc32.ChecksumIEEE(p.Data[:p.Size])
@@ -78,7 +78,7 @@ func (s *DataNode) checkPartition(p *repl.Packet) (err error) {
 		return
 	}
 	p.Object = dp
-	if p.IsWriteOperation() || p.IsCreateExtentOperation() {
+	if isWriteOperation(p) || isCreateExtentOperation(p) {
 		if dp.Available() <= 0 {
 			err = storage.NoSpaceError
 			return
@@ -92,27 +92,27 @@ func (s *DataNode) addExtentInfo(p *repl.Packet) error {
 	store := p.Object.(*DataPartition).ExtentStore()
 	var (
 		extentID uint64
-		err      error
+		err error
 	)
-	if p.IsLeaderPacket() && p.ExtentType == proto.TinyExtentType && p.IsWriteOperation() {
+	if isLeaderPacket(p) && p.ExtentType == proto.TinyExtentType && isWriteOperation(p) {
 		extentID, err = store.GetAvailableTinyExtent()
 		if err != nil {
-			return fmt.Errorf("addExtentInfo partition %v GetAvailableTinyExtent error %v", p.PartitionID, err.Error())
+			return fmt.Errorf("addExtentInfo partition %v GetAvailableTinyExtent error %v", p.PartitionID,err.Error())
 		}
 		p.ExtentID = extentID
 		p.ExtentOffset, err = store.GetTinyExtentOffset(extentID)
 		if err != nil {
-			return fmt.Errorf("addExtentInfo partition %v  %v GetTinyExtentOffset error %v", p.PartitionID, extentID, err.Error())
+			return fmt.Errorf("addExtentInfo partition %v  %v GetTinyExtentOffset error %v", p.PartitionID,extentID,err.Error())
 		}
-	} else if p.IsLeaderPacket() && p.IsCreateExtentOperation() {
+	} else if isLeaderPacket(p) && isCreateExtentOperation(p) {
 		if partition.GetExtentCount() >= storage.MaxExtentCount*3 {
 			return fmt.Errorf("addExtentInfo partition %v has reached maxExtentId", p.PartitionID)
 		}
-		p.ExtentID, err = store.NextExtentID()
-		if err != nil {
-			return fmt.Errorf("addExtentInfo partition %v alloc NextExtentId error %v", p.PartitionID, err)
+		p.ExtentID,err = store.NextExtentID()
+		if err!=nil {
+			return fmt.Errorf("addExtentInfo partition %v alloc NextExtentId error %v", p.PartitionID,err)
 		}
-	} else if p.IsLeaderPacket() && p.IsMarkDeleteExtentOperation() && p.IsTinyExtentType() {
+	} else if isLeaderPacket(p) && isMarkDeleteExtentOperation(p) && isTinyExtentType(p) {
 		record := new(proto.TinyExtentDeleteRecord)
 		if err := json.Unmarshal(p.Data[:p.Size], record); err != nil {
 			return fmt.Errorf("addExtentInfo failed %v", err.Error())
@@ -121,7 +121,35 @@ func (s *DataNode) addExtentInfo(p *repl.Packet) error {
 		p.Data, _ = json.Marshal(record)
 		p.Size = uint32(len(p.Data))
 	}
-	p.OrgBuffer = p.Data
 
 	return nil
+}
+
+// A leader packet is the packet send to the leader and does not require packet forwarding.
+func isLeaderPacket(p *repl.Packet) (ok bool) {
+	if p.IsForwardPkt() && (isWriteOperation(p) || isCreateExtentOperation(p) || isMarkDeleteExtentOperation(p)) {
+		ok = true
+	}
+
+	return
+}
+
+func isWriteOperation(p *repl.Packet) bool {
+	return p.Opcode == proto.OpWrite || p.Opcode == proto.OpSyncWrite
+}
+
+func isCreateExtentOperation(p *repl.Packet) bool {
+	return p.Opcode == proto.OpCreateExtent
+}
+
+func isMarkDeleteExtentOperation(p *repl.Packet) bool {
+	return p.Opcode == proto.OpMarkDelete
+}
+
+func isTinyExtentType(p *repl.Packet) bool {
+	return p.ExtentType == proto.TinyExtentType
+}
+
+func isReadExtentOperation(p *repl.Packet) bool {
+	return p.Opcode == proto.OpStreamRead || p.Opcode == proto.OpExtentRepairRead || p.Opcode == proto.OpRead || p.Opcode == proto.OpReadTinyDelete
 }

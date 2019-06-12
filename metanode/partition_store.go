@@ -17,7 +17,7 @@ package metanode
 import (
 	"bufio"
 	"encoding/binary"
-	json "github.com/intel-go/fastjson"
+	"encoding/json"
 	"fmt"
 	"github.com/chubaofs/chubaofs/proto"
 	"github.com/chubaofs/chubaofs/util/errors"

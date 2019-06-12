@@ -17,17 +17,17 @@ package datanode
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"net"
-	// "hash/crc32"
+
 	"fmt"
 	"github.com/chubaofs/chubaofs/proto"
 	"github.com/chubaofs/chubaofs/repl"
 	"github.com/chubaofs/chubaofs/storage"
-	"github.com/chubaofs/chubaofs/util/errors"
-	"github.com/chubaofs/chubaofs/util/exporter"
 	"github.com/chubaofs/chubaofs/util/log"
 	"github.com/tiglabs/raft"
 	"strings"
+	"sync/atomic"
 )
 
 type RaftCmdItem struct {
@@ -37,7 +37,6 @@ type RaftCmdItem struct {
 }
 
 type rndWrtOpItem struct {
-	opcode   uint8
 	extentID uint64
 	offset   int64
 	size     int64
@@ -52,13 +51,9 @@ type rndWrtOpItem struct {
 //  +------+----+------+------+------+------+------+
 //  | byte |     8    |    8   |  8   |  4  | size |
 //  +------+----+------+------+------+------+------+
-
-func rndWrtDataMarshal(opcode uint8, extentID uint64, offset, size int64, data []byte, crc uint32) (result []byte, err error) {
+func rndWrtDataMarshal(extentID uint64, offset, size int64, data []byte, crc uint32) (result []byte, err error) {
 	buff := bytes.NewBuffer(make([]byte, 0))
-	buff.Grow(8 + 8*2 + 4 + int(size) + 4)
-	if err = binary.Write(buff, binary.BigEndian, opcode); err != nil {
-		return
-	}
+	buff.Grow(8 + 8*2 + 4 + int(size))
 	if err = binary.Write(buff, binary.BigEndian, extentID); err != nil {
 		return
 	}
@@ -78,14 +73,10 @@ func rndWrtDataMarshal(opcode uint8, extentID uint64, offset, size int64, data [
 	return
 }
 
-// RandomWriteSubmit submits the proposal to raft.
-func rndWrtDataUnmarshal(raw []byte) (opItem *rndWrtOpItem, err error) {
-	opItem = new(rndWrtOpItem)
+func rndWrtDataUnmarshal(raw []byte) (result *rndWrtOpItem, err error) {
+	var opItem rndWrtOpItem
 
 	buff := bytes.NewBuffer(raw)
-	if err = binary.Read(buff, binary.BigEndian, &opItem.opcode); err != nil {
-		return
-	}
 	if err = binary.Read(buff, binary.BigEndian, &opItem.extentID); err != nil {
 		return
 	}
@@ -103,6 +94,39 @@ func rndWrtDataUnmarshal(raw []byte) (opItem *rndWrtOpItem, err error) {
 		return
 	}
 
+	result = &opItem
+	return
+}
+
+func (raftOpItem *RaftCmdItem) raftCmdMarshalJSON() (cmd []byte, err error) {
+	return json.Marshal(raftOpItem)
+}
+
+func (raftOpItem *RaftCmdItem) raftCmdUnmarshal(cmd []byte) (err error) {
+	return json.Unmarshal(cmd, raftOpItem)
+}
+
+// RandomWriteSubmit submits the proposal to raft.
+func (dp *DataPartition) RandomWriteSubmit(pkg *repl.Packet) (err error) {
+	val, err := rndWrtDataMarshal(pkg.ExtentID, pkg.ExtentOffset, int64(pkg.Size), pkg.Data, pkg.CRC)
+	if err != nil {
+		return
+	}
+	var (
+		resp interface{}
+	)
+	if pkg.Opcode == proto.OpRandomWrite {
+		resp, err = dp.Put(opRandomWrite, val)
+	} else {
+		resp, err = dp.Put(opRandomSyncWrite, val)
+	}
+	if err != nil {
+		return
+	}
+
+	pkg.ResultCode = resp.(uint8)
+
+	log.LogDebugf("[RandomWrite] SubmitRaft: %v", pkg.GetUniqueLogId())
 	return
 }
 
@@ -112,6 +136,23 @@ func (dp *DataPartition) checkWriteErrs(errMsg string) (ignore bool) {
 		return true
 	}
 	return false
+}
+
+func (dp *DataPartition) addDiskErrs(err error, flag uint8) {
+	if err == nil {
+		return
+	}
+
+	d := dp.Disk()
+	if d == nil {
+		return
+	}
+	if !IsDiskErr(err.Error()) {
+		return
+	}
+	if flag == WriteFlag {
+		d.incWriteErrCnt()
+	}
 }
 
 // CheckLeader checks if itself is the leader during read
@@ -159,56 +200,38 @@ func (si *ItemIterator) Next() (data []byte, err error) {
 }
 
 // ApplyRandomWrite random write apply
-func (dp *DataPartition) ApplyRandomWrite(command []byte, raftApplyID uint64) (resp interface{}, err error) {
+func (dp *DataPartition) ApplyRandomWrite(msg *RaftCmdItem, raftApplyID uint64) (extentID uint64, err error) {
 	opItem := &rndWrtOpItem{}
 	defer func() {
-		if err == nil {
-			resp = proto.OpOk
-			dp.uploadApplyID(raftApplyID)
-		} else {
-			key := fmt.Sprintf("%s_datapartition_apply_err", dp.clusterID)
-			prefix := fmt.Sprintf("Datapartition(%v)_Extent(%v)", dp.partitionID, opItem.extentID)
-			err = errors.Trace(err, prefix)
-			exporter.NewAlarm(key)
-			resp = proto.OpDiskErr
+		if err != nil {
+			atomic.StoreUint64(&dp.disk.WriteErrCnt, uint64(dp.disk.MaxErrCnt))
+			err = storage.BrokenExtentError
 		}
 	}()
-	if opItem, err = rndWrtDataUnmarshal(command); err != nil {
+	if opItem, err = rndWrtDataUnmarshal(msg.V); err != nil {
 		log.LogErrorf("[ApplyRandomWrite] ApplyID(%v) Partition(%v) unmarshal failed", raftApplyID, dp.partitionID, err)
 		return
 	}
+	extentID = opItem.extentID
 	log.LogDebugf("[ApplyRandomWrite] ApplyID(%v) Partition(%v)_Extent(%v)_ExtentOffset(%v)_Size(%v)",
 		raftApplyID, dp.partitionID, opItem.extentID, opItem.offset, opItem.size)
-	for i := 0; i < 20; i++ {
-		err = dp.ExtentStore().Write(opItem.extentID, opItem.offset, opItem.size, opItem.data, opItem.crc, NotUpdateSize, opItem.opcode == proto.OpSyncRandomWrite)
-		if dp.checkIsDiskError(err) {
-			return
+	for i := 0; i < maxRetryCounts; i++ {
+		err = dp.ExtentStore().Write(opItem.extentID, opItem.offset, opItem.size, opItem.data, opItem.crc, NotUpdateSize, msg.Op == opRandomSyncWrite)
+		dp.checkIsDiskError(err)
+		if err != nil {
+			if dp.checkWriteErrs(err.Error()) {
+				log.LogErrorf("[ApplyRandomWrite] ApplyID(%v) Partition(%v)_Extent(%v)_ExtentOffset(%v)_Size(%v) ignore error[%v]",
+					raftApplyID, dp.partitionID, opItem.extentID, opItem.offset, opItem.size, err)
+				err = nil
+			}
 		}
+		dp.addDiskErrs(err, WriteFlag)
 		if err == nil {
 			break
 		}
-		log.LogErrorf("[ApplyRandomWrite] ApplyID(%v) Partition(%v)_Extent(%v)_ExtentOffset(%v)_Size(%v) apply err[%v] retry[%v]", raftApplyID, dp.partitionID, opItem.extentID, opItem.offset, opItem.size, err, i)
+		log.LogErrorf("[ApplyRandomWrite] ApplyID(%v) Partition(%v)_Extent(%v)_ExtentOffset(%v)_Size(%v) apply err[%v] retry[%v]",
+			raftApplyID, dp.partitionID, opItem.extentID, opItem.offset, opItem.size, err, i)
 	}
-
-	return
-}
-
-// RandomWriteSubmit submits the proposal to raft.
-func (dp *DataPartition) RandomWriteSubmit(pkg *repl.Packet) (err error) {
-	val, err := rndWrtDataMarshal(pkg.Opcode, pkg.ExtentID, pkg.ExtentOffset, int64(pkg.Size), pkg.Data, pkg.CRC)
-	if err != nil {
-		return
-	}
-	var (
-		resp interface{}
-	)
-	if resp, err = dp.Put(nil, val); err != nil {
-		return
-	}
-
-	pkg.ResultCode = resp.(uint8)
-
-	log.LogDebugf("[RandomWrite] SubmitRaft: %v", pkg.GetUniqueLogId())
 
 	return
 }

@@ -16,7 +16,7 @@ package metanode
 
 import (
 	"bytes"
-	json "github.com/intel-go/fastjson"
+	"encoding/json"
 	"github.com/chubaofs/chubaofs/proto"
 	"sync"
 )

@@ -16,7 +16,7 @@ package metanode
 
 import (
 	"encoding/binary"
-	json "github.com/intel-go/fastjson"
+	"encoding/json"
 	"fmt"
 	"io"
 	"sync/atomic"

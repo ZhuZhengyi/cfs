@@ -15,7 +15,7 @@
 package config
 
 import (
-	json "github.com/intel-go/fastjson"
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"strconv"

@@ -15,7 +15,7 @@
 package raftstore
 
 import (
-	json "github.com/intel-go/fastjson"
+	"encoding/json"
 	"fmt"
 	"path"
 	"strconv"

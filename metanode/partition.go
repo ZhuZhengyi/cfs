@@ -15,7 +15,7 @@
 package metanode
 
 import (
-	json "github.com/intel-go/fastjson"
+	"encoding/json"
 	"sort"
 	"strconv"
 	"strings"

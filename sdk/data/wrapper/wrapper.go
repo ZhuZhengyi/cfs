@@ -15,7 +15,7 @@
 package wrapper
 
 import (
-	json "github.com/intel-go/fastjson"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"

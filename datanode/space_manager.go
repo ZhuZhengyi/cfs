@@ -135,6 +135,7 @@ func (manager *SpaceManager) LoadDisk(path string, reservedSpace uint64, maxErrC
 		}
 	}
 	if _, err = manager.GetDisk(path); err != nil {
+
 		disk = NewDisk(path, reservedSpace, maxErrCnt, manager)
 		disk.RestorePartition(visitor)
 		manager.putDisk(disk)
@@ -226,17 +227,11 @@ func (manager *SpaceManager) Partition(partitionID uint64) (dp *DataPartition) {
 	return
 }
 
-func (manager *SpaceManager) AttachPartition(dp *DataPartition) {
+func (manager *SpaceManager) putPartition(dp *DataPartition) {
 	manager.partitionMutex.Lock()
 	defer manager.partitionMutex.Unlock()
 	manager.partitions[dp.partitionID] = dp
-}
-
-// DetachDataPartition removes a data partition from the partition map.
-func (manager *SpaceManager) DetachDataPartition(partitionId uint64) {
-	manager.partitionMutex.Lock()
-	defer manager.partitionMutex.Unlock()
-	delete(manager.partitions, partitionId)
+	return
 }
 
 func (manager *SpaceManager) CreatePartition(request *proto.CreateDataPartitionRequest) (dp *DataPartition, err error) {
