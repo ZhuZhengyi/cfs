@@ -15,7 +15,7 @@
 package master
 
 import (
-	"encoding/json"
+	json "github.com/intel-go/fastjson"
 	"fmt"
 	bsProto "github.com/chubaofs/chubaofs/proto"
 	"github.com/chubaofs/chubaofs/util/errors"

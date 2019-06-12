@@ -15,7 +15,7 @@
 package datanode
 
 import (
-	"encoding/json"
+	json "github.com/intel-go/fastjson"
 	"fmt"
 	"net/http"
 	"strconv"

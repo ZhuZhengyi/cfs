@@ -16,7 +16,7 @@ package proto
 
 import (
 	"encoding/binary"
-	"encoding/json"
+	json "github.com/intel-go/fastjson"
 	"errors"
 	"fmt"
 	"github.com/chubaofs/chubaofs/util"

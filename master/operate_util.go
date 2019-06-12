@@ -17,7 +17,7 @@ package master
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"encoding/json"
+	json "github.com/intel-go/fastjson"
 	"fmt"
 	"github.com/chubaofs/chubaofs/proto"
 	"github.com/chubaofs/chubaofs/util/errors"

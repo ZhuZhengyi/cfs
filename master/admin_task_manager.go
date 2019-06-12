@@ -15,7 +15,7 @@
 package master
 
 import (
-	"encoding/json"
+	json "github.com/intel-go/fastjson"
 	"sync"
 	"time"
 

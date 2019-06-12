@@ -17,7 +17,7 @@ package meta
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"encoding/json"
+	json "github.com/intel-go/fastjson"
 	"github.com/chubaofs/chubaofs/proto"
 	"github.com/chubaofs/chubaofs/util/log"
 	"net/http"
