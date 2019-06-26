@@ -29,7 +29,6 @@ Configurations
    "consulAddr", "string", "Addresses of monitor system", "No"
    "exporterPort", "string", "Port for monitor system", "No"
    "masterAddr", "string slice", "Addresses of master server", "Yes"
-   "rack", "string", "Identity of rack", "No"
    "disks", "string slice", "PATH:MAX_ERRS:REST_SIZE", "Yes"
    "warnLogDir","string","Warn message directory","No"
 
@@ -55,7 +54,6 @@ Configurations
            "10.196.31.141:80",
            "10.196.31.173:80"
        ],
-       "rack": "main",
         "disks": [
            "/data0:21474836480",
            "/data1:21474836480"
