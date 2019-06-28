@@ -1142,12 +1142,14 @@ func getMetaPartitionView(mp *MetaPartition) (mpView *proto.MetaPartitionView) {
 	mpView = proto.NewMetaPartitionView(mp.PartitionID, mp.Start, mp.End, mp.Status)
 	mp.Lock()
 	defer mp.Unlock()
-	for _, metaReplica := range mp.Replicas {
-		mpView.Members = append(mpView.Members, metaReplica.Addr)
-		if metaReplica.IsLeader {
-			mpView.LeaderAddr = metaReplica.Addr
-		}
+	for _, host := range mp.Hosts {
+		mpView.Members = append(mpView.Members, host)
 	}
+	mr, err := mp.getMetaReplicaLeader()
+	if err != nil {
+		return
+	}
+	mpView.LeaderAddr = mr.Addr
 	return
 }
 
