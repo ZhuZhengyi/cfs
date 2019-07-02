@@ -331,6 +331,7 @@ func (e *Extent) DeleteTiny(offset, size int64) (hasDelete bool,err error) {
 		return false,err
 	}
 	if newOffset-offset>=size{
+		hasDelete=true
 		return true,nil
 	}
 	err = syscall.Fallocate(int(e.file.Fd()), FallocFLPunchHole|FallocFLKeepSize, offset, size)

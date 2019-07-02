@@ -470,8 +470,8 @@ func (s *DataNode) handleExtentRepaiReadPacket(p *repl.Packet, connect net.Conn,
 		p.ExtentOffset = offset
 		reply.CRC, err = store.Read(reply.ExtentID, offset, int64(currReadSize), reply.Data, isRepairRead)
 		partition.checkIsDiskError(err)
-		p.CRC = reply.CRC
 		tpObject.Set(err)
+		p.CRC = reply.CRC
 		if err != nil {
 			return
 		}

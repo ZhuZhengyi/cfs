@@ -4,11 +4,11 @@ Data Subsystem
 How To Start DataNode
 ---------------------
 
-Start a DataNode process by execute the server binary of ChubaoFS you built with ``-c`` argument and specify configuration file.
+Start a DataNode process by execute the server binary of ChubaoFS you built with ``-c`` argument and specify configuration file. At least 4 data nodes are required in respect to high availability.
 
 .. code-block:: bash
 
-   nohup cfs-datanode -c datanode.json &
+   nohup cfs-server -c datanode.json &
 
 
 Configurations
@@ -29,7 +29,9 @@ Configurations
    "consulAddr", "string", "Addresses of monitor system", "No"
    "exporterPort", "string", "Port for monitor system", "No"
    "masterAddr", "string slice", "Addresses of master server", "Yes"
-   "disks", "string slice", "PATH:MAX_ERRS:REST_SIZE", "Yes"
+   "disks", "string slice", "
+   | Format: *PATH:RETAIN*.
+   | PATH: Disk mount point. RETAIN: Retain space. (Ranges: 20G-50G.)", "Yes"
    "warnLogDir","string","Warn message directory","No"
 
 
@@ -42,7 +44,7 @@ Configurations
        "port": "6000",
        "prof": "6001",
        "logDir": "/export/Logs/datanode",
-       "logLevel": "debug",
+       "logLevel": "info",
        "raftHeartbeat": "9095",
        "warnLogDir":"/export/home/tomcat/UMP-Monitor/logs/",
        "raftReplica": "9096",

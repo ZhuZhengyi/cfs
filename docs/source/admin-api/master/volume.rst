@@ -6,10 +6,11 @@ Create
 
 .. code-block:: bash
 
-   curl -v "http://127.0.0.1/admin/createVol?name=test&capacity=100&owner=cfs"
+   curl -v "http://127.0.0.1/admin/createVol?name=test&capacity=100&owner=cfs&mpCount=3"
 
 
-allocate a set of data partition and a meta partition to the user.
+| Allocate a set of data partition and a meta partition to the user.
+| Default create 10 data partition and 3 meta partition when create volume.
 
 .. csv-table:: Parameters
    :header: "Parameter", "Type", "Description"
@@ -17,6 +18,7 @@ allocate a set of data partition and a meta partition to the user.
    "name", "string", ""
    "capacity", "int", "the quota of vol,unit is GB"
    "owner", "string", "the owner of vol"
+   "mpCount", "int", "the amount of initial meta partitions"
 
 Delete
 -------------

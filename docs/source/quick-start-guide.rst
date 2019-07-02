@@ -28,12 +28,12 @@ Build Client
 Deployment
 ----------
 
-Start Resource Manager
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Start Resource Manager (Master)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
-   nohup ./cmd -c master.json &
+   nohup ./cfs-server -c master.json &
 
 
 Sample *master.json* is shown as follows,
@@ -66,7 +66,7 @@ Start Metanode
 
 .. code-block:: bash
 
-   nohup ./cmd -c meta.json &
+   nohup ./cfs-server -c meta.json &
 
 Sample *meta.json is* shown as follows,
 
@@ -76,12 +76,12 @@ Sample *meta.json is* shown as follows,
        "role": "metanode",
        "listen": "9021",
        "prof": "9092",
-       "logLevel": "debug",
-       "metaDir": "/export/Data/metanode",
+       "logLevel": "info",
+       "metadataDir": "/export/Data/metanode",
        "logDir": "/export/Logs/metanode",
        "raftDir": "/export/Data/metanode/raft",
        "raftHeartbeatPort": "9093",
-       "raftReplicatePort": "9094",
+       "raftReplicaPort": "9094",
        "totalMem":  "17179869184",
        "warnLogDir":"/export/home/tomcat/UMP-Monitor/logs/",
        "consulAddr": "http://consul.prometheus-cfs.local",
@@ -133,7 +133,7 @@ Start Datanode
 
    .. code-block:: bash
    
-      nohup ./cmd -c datanode.json &
+      nohup ./cfs-server -c datanode.json &
 
    Sample *datanode.json* is shown as follows,
    
@@ -166,20 +166,24 @@ For detailed explanations of *datanode.json*, please refer to :doc:`user-guide/d
 Create Volume
 ^^^^^^^^^^^^^
 
-By decault, there are only a few data partitions allocated upon volume creation, and will be dynamically expanded according to actual usage. For performance evaluation, it is better to preallocate enough data partitions.
+By default, there are only a few data partitions allocated upon volume creation, and will be dynamically expanded according to actual usage.
 
 .. code-block:: bash
 
-   curl -v "http://127.0.0.1/admin/createVol?name=test&capacity=100&owner=cfs"
+   curl -v "http://127.0.0.1/admin/createVol?name=test&capacity=10000&owner=cfs"
 
+For performance evaluation, extra data partitions shall be pre-created according to the amount of data nodes and disks to reach maximum performance.
 
+.. code-block:: bash
+
+    curl -v "http://127.0.0.1/dataPartition/create?name=test&count=120"
 
 Mount Client
 ------------
 
 1. Run ``modprobe fuse`` to insert FUSE kernel module.
 2. Run ``yum install -y fuse`` to install libfuse.
-3. Run ``nohup client -c fuse.json &`` to start a client.
+3. Run ``nohup cfs-client -c fuse.json &`` to start a client.
 
    Sample *fuse.json* is shown as follows,
    
