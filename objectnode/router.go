@@ -159,6 +159,26 @@ func (o *ObjectNode) registerApiRouters(router *mux.Router) {
 			HandlerFunc(o.listObjectXAttrs).
 			Queries("xattr", "")
 
+		// Delete object
+		// API reference: https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteObject.html .
+		r.Methods(http.MethodDelete).
+			Path("/{object:.+}").
+			HandlerFunc(o.policyCheck(o.deleteObjectHandler, []Action{DeleteObjectAction}))
+
+		// Get object acl
+		// API reference: https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObjectAcl.html
+		r.Methods(http.MethodGet).
+			Path("/{object:.+}").
+			HandlerFunc(o.policyCheck(o.getObjectACLHandler, []Action{GetObjectAclAction})).
+			Queries("acl", "")
+
+		// Put object acl
+		// API reference: https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketAcl.html
+		r.Methods(http.MethodPut).
+			Path("/{object:.+}").
+			HandlerFunc(o.policyCheck(o.putObjectACLHandler, []Action{PutObjectAclAction})).
+			Queries("acl", "")
+
 		// List objects version 2
 		// API reference: https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListObjectsV2.html
 		r.Methods(http.MethodGet).
@@ -182,11 +202,6 @@ func (o *ObjectNode) registerApiRouters(router *mux.Router) {
 		r.Methods(http.MethodPost).
 			HandlerFunc(o.policyCheck(o.deleteObjectsHandler, []Action{DeleteObjectAction})).
 			Queries("delete", "")
-
-		// List objects version 1
-		// API reference: https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListObjects.html
-		r.Methods(http.MethodGet).
-			HandlerFunc(o.policyCheck(o.getBucketV1Handler, []Action{ListBucketAction}))
 
 		// Head bucket
 		// API reference: https://docs.aws.amazon.com/AmazonS3/latest/API/API_HeadBucket.html
@@ -217,12 +232,6 @@ func (o *ObjectNode) registerApiRouters(router *mux.Router) {
 			HandlerFunc(o.policyCheck(o.deleteBucketPolicyHandler, []Action{DeleteBucketPolicyAction})).
 			Queries("policy", "")
 
-		// Delete object
-		// API reference: https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteObject.html .
-		r.Methods(http.MethodDelete).
-			Path("/{object:.+}").
-			HandlerFunc(o.policyCheck(o.deleteObjectHandler, []Action{DeleteObjectAction}))
-
 		// Get bucket acl
 		// API reference: https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketAcl.html
 		r.Methods(http.MethodGet).
@@ -235,20 +244,10 @@ func (o *ObjectNode) registerApiRouters(router *mux.Router) {
 			HandlerFunc(o.policyCheck(o.putBucketACLHandler, []Action{PutBucketAclAction})).
 			Queries("acl", "")
 
-		// Get object acl
-		// API reference: https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObjectAcl.html
+		// List objects version 1
+		// API reference: https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListObjects.html
 		r.Methods(http.MethodGet).
-			Path("/{objject:.+}").
-			HandlerFunc(o.policyCheck(o.getObjectACLHandler, []Action{GetObjectAclAction})).
-			Queries("acl", "")
-
-		// Put object acl
-		// API reference: https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketAcl.html
-		r.Methods(http.MethodPut).
-			Path("/{object:.+}").
-			HandlerFunc(o.policyCheck(o.putObjectACLHandler, []Action{PutObjectAclAction})).
-			Queries("acl", "")
-
+			HandlerFunc(o.policyCheck(o.getBucketV1Handler, []Action{ListBucketAction}))
 	}
 
 	// List buckets
