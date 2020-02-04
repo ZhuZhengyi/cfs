@@ -23,6 +23,11 @@ However, different from Haystack,  the actually physical offsets instead of logi
 and deleting a  file  is achieved by the punch hole interface provided by the underlying file system instead of relying on the garbage collector to perform merging and compacting regularly for more efficient disk utilization. In addition, Haystack does not guarantee the strong consistency among the replicas when deleting the files, and it needs to perform merging and compacting regularly for more efficient disk utilization, which could be a performance killer.
 ChubaoFS takes a different design principle to separate the storage of file metadata and contents. In this way, we can have more flexible and cost-effective deployments of meta and data nodes.
 
+Hadoop Ozone
+^^^^^^^^
+Hadoop Ozone is a scalable distributed object storage system designed for Hadoop. It was originally proposed to solve the problem of HDFS namenode expansion. It reconstructs the namenode metadata management part of hdfs and reuses the datanode of hdfs.
+ChubaoFS has many of the same design concepts like ozone such as: supporting for volume isolation, compatible with both raft/master-slave synchronous replication mechanisms, implenting for s3-compatible interfaces. In addition, ChubaoFS's POSIX fuse-client interface supports random file reading and writing, and optimizes reading and writing of small files.
+
 Public Cloud
 ^^^^^^^^^^^^^
 Windows Azure Storage (https://azure.microsoft.com/en-us/) is a cloud storage system that provides strong consistency and multi-tenancy to the clients.
