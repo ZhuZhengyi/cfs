@@ -15,121 +15,71 @@
 package exporter
 
 import (
-	"fmt"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
-
 	"github.com/chubaofs/chubaofs/util/config"
 	"github.com/chubaofs/chubaofs/util/log"
 	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
-	PromHandlerPattern      = "/metrics"       // prometheus handler
 	AppName                 = "cfs"            //app name
 	ConfigKeyExporterEnable = "exporterEnable" //exporter enable
 	ConfigKeyExporterPort   = "exporterPort"   //exporter port
 	ConfigKeyConsulAddr     = "consulAddr"     //consul addr
-	ChSize                  = 1024 * 10        //collect chan size
 )
 
 var (
 	namespace         string
 	clustername       string
 	modulename        string
+	Role              string
+	HostIP            string
 	exporterPort      int64
 	enabledPrometheus = false
-	replacer          = strings.NewReplacer("-", "_", ".", "_", " ", "_", ",", "_", ":", "_")
+	collector         *Collector
 )
 
-func metricsName(name string) string {
-	return replacer.Replace(fmt.Sprintf("%s_%s", namespace, name))
+func init() {
+	collector = NewCollector()
+	HostIP, _ = GetLocalIpAddr()
 }
 
 // Init initializes the exporter.
 func Init(role string, cfg *config.Config) {
-	modulename = role
-	if !cfg.GetBoolWithDefault(ConfigKeyExporterEnable, true) {
-		log.LogInfof("%v exporter disabled", role)
-		return
+	Role = role
+
+	//register backend
+	if promCfg := ParsePromConfig(role, cfg); promCfg != nil && promCfg.enabled {
+		b := NewPrometheusBackend(promCfg)
+		collector.RegisterBackend(PromBackendName, b)
 	}
-	port := cfg.GetInt64(ConfigKeyExporterPort)
-	if port == 0 {
-		log.LogInfof("%v exporter port not set", port)
-		return
+
+	if conf := ParseJCMConfig(cfg); conf != nil {
+		b := NewJCMBackend(conf)
+		collector.RegisterBackend(JCMConfigKey, b)
 	}
-	exporterPort = port
-	enabledPrometheus = true
-	http.Handle(PromHandlerPattern, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
-		Timeout: 5 * time.Second,
-	}))
-	namespace = AppName + "_" + role
-	addr := fmt.Sprintf(":%d", port)
-	go func() {
-		err := http.ListenAndServe(addr, nil)
-		if err != nil {
-			log.LogError("exporter http serve error: ", err)
-		}
-	}()
 
-	collect()
-
-	m := NewGauge("start_time")
-	m.Set(time.Now().Unix() * 1000)
-
-	log.LogInfof("exporter Start: %v", addr)
+	collector.Start()
 }
 
 // Init initializes the exporter.
 func InitWithRouter(role string, cfg *config.Config, router *mux.Router, exPort string) {
-	modulename = role
-	if !cfg.GetBoolWithDefault(ConfigKeyExporterEnable, true) {
-		log.LogInfof("%v metrics exporter disabled", role)
-		return
+	Role = role
+
+	//register backend
+	if promCfg := ParsePromConfigWithRouter(role, cfg, router, exPort); promCfg != nil && promCfg.enabled {
+		b := NewPrometheusBackend(promCfg)
+		collector.RegisterBackend(PromBackendName, b)
 	}
-	exporterPort, _ = strconv.ParseInt(exPort, 10, 64)
-	enabledPrometheus = true
-	router.NewRoute().Name("metrics").
-		Methods(http.MethodGet).
-		Path(PromHandlerPattern).
-		Handler(promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
-			Timeout: 5 * time.Second,
-		}))
-	namespace = AppName + "_" + role
 
-	collect()
+	if conf := ParseJCMConfig(cfg); conf != nil {
+		b := NewJCMBackend(conf)
+		collector.RegisterBackend(JCMConfigKey, b)
+	}
 
-	m := NewGauge("start_time")
-	m.Set(time.Now().Unix() * 1000)
-
-	log.LogInfof("exporter Start: %v %v", exporterPort, m)
+	collector.Start()
 }
 
-func RegistConsul(cluster string, role string, cfg *config.Config) {
-	clustername = replacer.Replace(cluster)
-	consulAddr := cfg.GetString(ConfigKeyConsulAddr)
-
-	if exporterPort == int64(0) {
-		exporterPort = cfg.GetInt64(ConfigKeyExporterPort)
-	}
-	if exporterPort != int64(0) && len(consulAddr) > 0 {
-		if ok := strings.HasPrefix(consulAddr, "http"); !ok {
-			consulAddr = "http://" + consulAddr
-		}
-		DoConsulRegisterProc(consulAddr, AppName, role, cluster, exporterPort)
-	}
-}
-
-func collect() {
-	if !enabledPrometheus {
-		return
-	}
-	go collectCounter()
-	go collectGauge()
-	go collectTP()
-	go collectAlarm()
+func Stop() {
+	collector.Stop()
+	log.LogInfo("exporter stopped")
 }

@@ -23,29 +23,13 @@ import (
 )
 
 var (
-	GaugePool = &sync.Pool{New: func() interface{} {
-		return new(Gauge)
-	}}
-
 	GaugeGroup sync.Map
-	GaugeCh    chan *Gauge
 )
-
-func collectGauge() {
-	GaugeCh = make(chan *Gauge, ChSize)
-	for {
-		m := <-GaugeCh
-		metric := m.Metric()
-		metric.Set(float64(m.val))
-		log.LogDebugf("collect metric %v", m)
-	}
-}
 
 type Gauge struct {
 	name   string
 	labels map[string]string
-	val    int64
-	ch     chan interface{}
+	val    float64
 }
 
 func NewGauge(name string) (g *Gauge) {
@@ -53,16 +37,24 @@ func NewGauge(name string) (g *Gauge) {
 		return
 	}
 	g = new(Gauge)
-	g.name = metricsName(name)
+	g.name = MetricsName(name)
 	return
 }
 
-func (c *Gauge) Key() (key string) {
-	return stringMD5(c.Name())
+func (g *Gauge) Key() string {
+	return fmt.Sprintf("{%s: %s}", g.name, stringMapToString(g.labels))
 }
 
 func (g *Gauge) Name() string {
-	return fmt.Sprintf("{%s: %s}", g.name, stringMapToString(g.labels))
+	return g.name
+}
+
+func (g *Gauge) Labels() map[string]string {
+	return g.labels
+}
+
+func (g *Gauge) Val() float64 {
+	return g.val
 }
 
 func (g *Gauge) String() string {
@@ -93,13 +85,13 @@ func (g *Gauge) Set(val int64) {
 	if !enabledPrometheus {
 		return
 	}
-	g.val = val
-	g.publish()
+	g.val = float64(val)
+	g.Publish()
 }
 
-func (c *Gauge) publish() {
+func (c *Gauge) Publish() {
 	select {
-	case GaugeCh <- c:
+	case collector.collectCh <- c:
 	default:
 	}
 }

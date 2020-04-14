@@ -23,20 +23,7 @@ import (
 
 var (
 	CounterGroup sync.Map
-	CounterPool  = &sync.Pool{New: func() interface{} {
-		return new(Counter)
-	}}
-	CounterCh chan *Counter
 )
-
-func collectCounter() {
-	CounterCh = make(chan *Counter, ChSize)
-	for {
-		m := <-CounterCh
-		metric := m.Metric()
-		metric.Add(float64(m.val))
-	}
-}
 
 type Counter struct {
 	Gauge
@@ -47,7 +34,7 @@ func NewCounter(name string) (c *Counter) {
 		return
 	}
 	c = new(Counter)
-	c.name = metricsName(name)
+	c.name = MetricsName(name)
 	return
 }
 
@@ -55,13 +42,13 @@ func (c *Counter) Add(val int64) {
 	if !enabledPrometheus {
 		return
 	}
-	c.val = val
-	c.publish()
+	c.val = float64(val)
+	c.Publish()
 }
 
-func (c *Counter) publish() {
+func (c *Counter) Publish() {
 	select {
-	case CounterCh <- c:
+	case collector.collectCh <- c:
 	default:
 	}
 }
@@ -74,6 +61,7 @@ func (c *Counter) AddWithLabels(val int64, labels map[string]string) {
 	c.Add(val)
 }
 
+// prometheus counter metric
 func (c *Counter) Metric() prometheus.Counter {
 	metric := prometheus.NewCounter(
 		prometheus.CounterOpts{

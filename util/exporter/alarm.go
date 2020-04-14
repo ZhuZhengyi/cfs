@@ -27,16 +27,16 @@ var (
 		return new(Alarm)
 	}}
 	//AlarmGroup  sync.Map
-	AlarmCh chan *Alarm
+	//AlarmCh chan *Alarm
 )
 
-func collectAlarm() {
-	AlarmCh = make(chan *Alarm, ChSize)
-	for {
-		m := <-AlarmCh
-		AlarmPool.Put(m)
-	}
-}
+//func collectAlarm() {
+//    AlarmCh = make(chan *Alarm, CollectChSize)
+//    for {
+//        m := <-AlarmCh
+//        AlarmPool.Put(m)
+//    }
+//}
 
 type Alarm struct {
 	Counter
@@ -49,15 +49,16 @@ func Warning(detail string) (a *Alarm) {
 	if !enabledPrometheus {
 		return
 	}
-	a = AlarmPool.Get().(*Alarm)
-	a.name = metricsName(key)
+	//a = AlarmPool.Get().(*Alarm)
+	a = new(Alarm)
+	a.name = MetricsName(key)
 	a.Add(1)
 	return
 }
 
 func (c *Alarm) publish() {
 	select {
-	case AlarmCh <- c:
+	case collector.collectCh <- c:
 	default:
 	}
 }

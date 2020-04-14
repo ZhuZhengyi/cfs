@@ -1,0 +1,15 @@
+{
+    "jcm": {
+        "url": "http://10.226.148.135:8080/v2/put",
+        "push_period": 15,
+        "appCode": "jcloud",
+        "serviceCode": "chubaofs",
+        "dataCenter": "cn-north-1",
+        "resourceId": "1",
+        "metrics": {
+            "vol_total_GB": "vol.total.size",
+            "vol_used_GB": "vol.used.size",
+            "vol_usage_ratio": "vol.usage.ratio"
+        }
+    }
+}

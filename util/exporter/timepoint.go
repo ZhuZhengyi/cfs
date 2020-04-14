@@ -16,28 +16,10 @@ package exporter
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/chubaofs/chubaofs/util/ump"
 )
-
-var (
-	TPPool = &sync.Pool{New: func() interface{} {
-		return new(TimePoint)
-	}}
-	TPCh chan *TimePoint
-)
-
-func collectTP() {
-	TPCh = make(chan *TimePoint, ChSize)
-	for {
-		m := <-TPCh
-		metric := m.Metric()
-		metric.Set(float64(m.val))
-		TPPool.Put(m)
-	}
-}
 
 type TimePoint struct {
 	Gauge
@@ -54,8 +36,8 @@ func NewTP(name string) (tp *TimePoint) {
 	if !enabledPrometheus {
 		return
 	}
-	tp = TPPool.Get().(*TimePoint)
-	tp.name = metricsName(name)
+	tp = new(TimePoint)
+	tp.name = MetricsName(name)
 	tp.startTime = time.Now()
 	return
 }
@@ -65,8 +47,8 @@ func (tp *TimePoint) Set() {
 		return
 	}
 	val := time.Since(tp.startTime).Nanoseconds()
-	tp.val = val
-	tp.publish()
+	tp.val = float64(val)
+	tp.Publish()
 }
 
 func NewTPCnt(name string) (tpc *TimePointCount) {
@@ -83,9 +65,9 @@ func (tpc *TimePointCount) Set(err error) {
 	tpc.cnt.Add(1)
 }
 
-func (tp *TimePoint) publish() {
+func (tp *TimePoint) Publish() {
 	select {
-	case TPCh <- tp:
+	case collector.collectCh <- tp:
 	default:
 	}
 }

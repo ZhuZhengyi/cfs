@@ -20,8 +20,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/chubaofs/chubaofs/util/config"
 	"github.com/chubaofs/chubaofs/util/log"
 )
 
@@ -29,6 +31,8 @@ const (
 	RegisterPeriod = time.Duration(10) * time.Minute
 	RegisterPath   = "/v1/agent/service/register"
 )
+
+var ()
 
 /**
  * consul register info for prometheus
@@ -45,6 +49,22 @@ type ConsulRegisterInfo struct {
 // get consul id
 func GetConsulId(app string, role string, host string, port int64) string {
 	return fmt.Sprintf("%s_%s_%s_%d", app, role, host, port)
+}
+
+// register consul about node
+func RegistConsul(cluster string, role string, cfg *config.Config) {
+	clustername = replacer.Replace(cluster)
+	consulAddr := cfg.GetString(ConfigKeyConsulAddr)
+
+	if exporterPort == int64(0) {
+		exporterPort = cfg.GetInt64(ConfigKeyExporterPort)
+	}
+	if exporterPort != int64(0) && len(consulAddr) > 0 {
+		if ok := strings.HasPrefix(consulAddr, "http"); !ok {
+			consulAddr = "http://" + consulAddr
+		}
+		DoConsulRegisterProc(consulAddr, AppName, role, cluster, exporterPort)
+	}
 }
 
 // do consul register process
