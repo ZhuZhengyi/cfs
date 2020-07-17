@@ -197,6 +197,11 @@ func (mp *MetaPartition) fsmAppendExtents(ino *Inode) (status uint8) {
 		status = proto.OpNotExistErr
 		return
 	}
+	if ino2 == nil {
+		log.LogErrorf("get inode has nil:[%v]", ino.Inode)
+		status = proto.OpNotExistErr
+		return
+	}
 	if ino2.ShouldDelete() {
 		status = proto.OpNotExistErr
 		return

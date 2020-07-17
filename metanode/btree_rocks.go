@@ -121,7 +121,7 @@ func (r *RocksTree) RangeWithSnap(snapshot *gorocksdb.Snapshot, start, end []byt
 
 func (r *RocksTree) RangeWithIter(it *gorocksdb.Iterator, start []byte, end []byte, cb func(v []byte) (bool, error)) error {
 	it.Seek(start)
-	for ; ; it.Next() {
+	for ; it.ValidForPrefix(start); it.Next() {
 		key := it.Key().Data()
 		value := it.Value().Data()
 		if bytes.Compare(end, key) < 0 {
@@ -255,6 +255,7 @@ func (b *InodeRocks) Get(ino uint64) (*Inode, error) {
 		return nil, err
 	}
 	if bs == nil {
+		log.LogErrorf("[InodeRocks] Get nil ino: %v", ino)
 		return nil, nil
 	}
 	inode := &Inode{}
@@ -380,7 +381,7 @@ func (b *DentryRocks) Create(dentry *Dentry) error {
 		log.LogErrorf("[DentryRocks] Failed to has Key: %v, err: %v", key, err)
 		return err
 	} else if has {
-		log.LogErrorf("[DentryRocks] has Key: %v, err: %v", key, err)
+		log.LogErrorf("[DentryRocks] has Key: %v", key)
 		return existsError
 	}
 
