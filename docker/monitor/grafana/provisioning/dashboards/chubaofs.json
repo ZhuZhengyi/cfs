@@ -15,7 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1594609997387,
+  "id": 1,
+  "iteration": 1595215703532,
   "links": [],
   "panels": [
     {
@@ -104,7 +105,7 @@
       "valueMaps": [
         {
           "op": "=",
-          "text": "N/A",
+          "text": "0",
           "value": "null"
         }
       ],
@@ -182,7 +183,7 @@
       "valueMaps": [
         {
           "op": "=",
-          "text": "N/A",
+          "text": "0",
           "value": "null"
         }
       ],
@@ -259,7 +260,7 @@
       "valueMaps": [
         {
           "op": "=",
-          "text": "N/A",
+          "text": "0",
           "value": "null"
         }
       ],
@@ -336,7 +337,7 @@
       "valueMaps": [
         {
           "op": "=",
-          "text": "N/A",
+          "text": "0",
           "value": "null"
         }
       ],
@@ -413,7 +414,7 @@
       "valueMaps": [
         {
           "op": "=",
-          "text": "N/A",
+          "text": "0",
           "value": "null"
         }
       ],
@@ -491,7 +492,7 @@
       "valueMaps": [
         {
           "op": "=",
-          "text": "N/A",
+          "text": "0",
           "value": "null"
         }
       ],
@@ -569,7 +570,7 @@
       "valueMaps": [
         {
           "op": "=",
-          "text": "N/A",
+          "text": "0",
           "value": "null"
         }
       ],
@@ -618,7 +619,7 @@
       "pluginVersion": "6.4.4",
       "targets": [
         {
-          "expr": "cfs_master_dataNodes_total_GB{app=\"$app\",cluster=\"$cluster\", instance=\"$master_instance\"}",
+          "expr": "avg(cfs_master_dataNodes_total_GB{app=\"$app\",cluster=\"$cluster\"})",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -626,7 +627,7 @@
           "refId": "B"
         },
         {
-          "expr": "cfs_master_dataNodes_used_GB{app=\"$app\",cluster=\"$cluster\", instance=\"$master_instance\"}",
+          "expr": "avg(cfs_master_dataNodes_used_GB{app=\"$app\",cluster=\"$cluster\"})",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -634,7 +635,7 @@
           "refId": "A"
         },
         {
-          "expr": "cfs_master_dataNodes_increased_GB{app=\"$app\",cluster=\"$cluster\", instance=\"$master_instance\"}",
+          "expr": "avg(cfs_master_dataNodes_increased_GB{app=\"$app\",cluster=\"$cluster\"})",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -689,7 +690,7 @@
       "pluginVersion": "6.4.4",
       "targets": [
         {
-          "expr": "sum(cfs_master_metaNodes_total_GB{cluster=~\"$cluster\", instance=\"$master_instance\"})",
+          "expr": "avg(cfs_master_metaNodes_total_GB{app=\"$app\",cluster=\"$cluster\"})",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -697,7 +698,7 @@
           "refId": "B"
         },
         {
-          "expr": "sum(cfs_master_metaNodes_used_GB{cluster=~\"$cluster\", instance=\"$master_instance\"} )",
+          "expr": "avg(cfs_master_metaNodes_used_GB{app=\"$app\",cluster=\"$cluster\"})",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -705,7 +706,7 @@
           "refId": "A"
         },
         {
-          "expr": "sum(cfs_master_metaNodes_increased_GB{cluster=~\"$cluster\", instance=\"$master_instance\"})",
+          "expr": "avg(cfs_master_metaNodes_increased_GB{app=\"$app\",cluster=\"$cluster\"})",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -768,7 +769,7 @@
       "pluginVersion": "6.4.4",
       "targets": [
         {
-          "expr": "topk($topk, cfs_master_vol_total_GB{app=\"$app\",cluster=\"$cluster\", instance=\"$master_instance\"})",
+          "expr": "topk($topk, avg(cfs_master_vol_total_GB{app=\"$app\",cluster=\"$cluster\"}) by (volName))",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -824,7 +825,7 @@
       "pluginVersion": "6.4.4",
       "targets": [
         {
-          "expr": "cfs_master_dataNodes_used_GB{app=\"$app\",cluster=\"$cluster\", instance=\"$master_instance\"}/ cfs_master_dataNodes_total_GB{app=\"$app\",cluster=\"$cluster\", instance=\"$master_instance\"}",
+          "expr": "avg(cfs_master_dataNodes_used_GB{app=\"$app\",cluster=\"$cluster\"})/ avg(cfs_master_dataNodes_total_GB{app=\"$app\",cluster=\"$cluster\"})",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -880,7 +881,7 @@
       "pluginVersion": "6.4.4",
       "targets": [
         {
-          "expr": "cfs_master_metaNodes_used_GB{app=\"$app\",cluster=\"$cluster\", instance=\"$master_instance\"} / cfs_master_metaNodes_total_GB{app=\"$app\",cluster=\"$cluster\", instance=\"$master_instance\"}",
+          "expr": "avg(cfs_master_metaNodes_used_GB{app=\"$app\",cluster=\"$cluster\"})/ avg(cfs_master_metaNodes_total_GB{app=\"$app\",cluster=\"$cluster\"})",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -931,7 +932,7 @@
       "pluginVersion": "6.4.4",
       "targets": [
         {
-          "expr": "cfs_master_dataNodes_inactive{app=\"$app\", cluster=\"$cluster\", instance=\"$master_instance\"}",
+          "expr": "avg(cfs_master_dataNodes_inactive{app=\"$app\", cluster=\"$cluster\"})",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -982,7 +983,7 @@
       "pluginVersion": "6.4.4",
       "targets": [
         {
-          "expr": "cfs_master_metaNodes_inactive{app=\"$app\", cluster=\"$cluster\", instance=\"$master_instance\"}",
+          "expr": "avg(cfs_master_metaNodes_inactive{app=\"$app\", cluster=\"$cluster\"})",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -1059,7 +1060,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "delta(cfs_master_disk_error{app=\"$app\", cluster=\"$cluster\", instance=\"$master_instance\"}[1m])",
+          "expr": "avg(delta(cfs_master_disk_error{app=\"$app\", cluster=\"$cluster\"}[1m]))",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -1130,7 +1131,7 @@
       "pluginVersion": "6.4.4",
       "targets": [
         {
-          "expr": "topk($topk, cfs_master_vol_used_GB{app=\"$app\",cluster=\"$cluster\", instance=\"$master_instance\"}/cfs_master_vol_total_GB{app=\"$app\",cluster=\"$cluster\", instance=\"$master_instance\"})",
+          "expr": "topk($topk, avg(cfs_master_vol_used_GB{app=\"$app\", cluster=\"$cluster\"}) by (volName) / avg(cfs_master_vol_total_GB{app=\"$app\", cluster=\"$cluster\"}) by (volName))",
           "format": "time_series",
           "instant": true,
           "intervalFactor": 1,
@@ -1202,7 +1203,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "topk($topk, cfs_master_vol_used_GB{app=\"$app\",cluster=\"$cluster\", instance=\"$master_instance\"})",
+          "expr": "topk($topk, avg(cfs_master_vol_used_GB{app=\"$app\",cluster=\"$cluster\"}) by (volName))",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{volName}}",
@@ -1467,14 +1468,14 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "cfs_master_vol_used_GB{app=\"$app\",cluster=\"$cluster\", volName=\"$vol\", instance=\"$master_instance\"}",
+          "expr": "avg(cfs_master_vol_used_GB{app=\"$app\",cluster=\"$cluster\", volName=\"$vol\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "UsedSize",
           "refId": "C"
         },
         {
-          "expr": "cfs_master_vol_used_GB{app=\"$app\",cluster=\"$cluster\", volName=\"$vol\", instance=\"$master_instance\"}/cfs_master_vol_total_GB{app=\"$app\",cluster=\"$cluster\", volName=\"$vol\", instance=\"$master_instance\"}",
+          "expr": "avg(cfs_master_vol_used_GB{app=\"$app\",cluster=\"$cluster\", volName=\"$vol\"})/avg(cfs_master_vol_total_GB{app=\"$app\",cluster=\"$cluster\", volName=\"$vol\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "UsedRatio",
@@ -5113,5 +5114,5 @@
   "timezone": "",
   "title": "ChubaoFS",
   "uid": "J8XJyOmZk1",
-  "version": 1
+  "version": 3
 }
