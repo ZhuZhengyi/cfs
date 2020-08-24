@@ -57,7 +57,8 @@ func (mp *MetaPartition) fsmCreateLinkInode(ino *Inode) (resp *InodeResponse) {
 		resp.Status = proto.OpNotExistErr
 		return
 	}
-	if item.ShouldDelete() {
+	//if item.ShouldDelete() {
+	if item == nil || item.ShouldDelete() {
 		resp.Status = proto.OpNotExistErr
 		return
 	}
@@ -305,7 +306,7 @@ func (mp *MetaPartition) fsmSetAttr(req *SetattrRequest) (err error) {
 		log.LogErrorf("get inode has err:[%s]", err.Error())
 		return
 	}
-	if item != nil || item.ShouldDelete() {
+	if item == nil || item.ShouldDelete() {
 		return
 	}
 	item.SetAttr(req.Valid, req.Mode, req.Uid, req.Gid)
