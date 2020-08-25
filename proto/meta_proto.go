@@ -35,6 +35,7 @@ type Peer struct {
 type CreateMetaPartitionRequest struct {
 	MetaId      string
 	VolName     string
+	StoreType   uint8
 	Start       uint64
 	End         uint64
 	PartitionID uint64
