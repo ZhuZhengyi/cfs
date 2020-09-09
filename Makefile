@@ -14,7 +14,7 @@ SERVER_SRC := $(wildcard cmd/*.go authnode/*.go datanode/*.go master/*.go metano
 CLIENT_SRC := $(wildcard client/*.go client/fs/*.go sdk/*.go)
 CLIENT2_SRC := $(wildcard clientv2/*.go clientv2/fs/*.go sdk/*.go)
 AUTHTOOL_SRC := $(wildcard authtool/*.go)
-CLI_SRC := $(wildcard cli/*.go)
+CLI_SRC := $(wildcard cli/*.go cli/*/*.go)
 
 RM := $(shell [ -x /bin/rm ] && echo "/bin/rm" || echo "/usr/bin/rm" )
 

@@ -1,0 +1,95 @@
+version: 1.0
+
+cluster:
+    name: "cfs01"
+    consulAddr: "http://cbconsul-cfs01.cbmonitor.svc.ht7.n.jd.local"
+    logDir: "/export/Logs/cfs"
+    logLevel: "info"
+    appHome: "/export/App/cfs"
+    passwd: "bjguoweilong"
+
+    master:
+        hosts:
+            - 192.168.0.11
+            - 192.168.0.12
+            - 192.168.0.13
+        listen: 17010
+        prof: 17012
+        exportPort: "17019"
+        retainLogs: "20000"
+        logDir: /export/Logs/cfs
+        logLevel: "info"
+        warnLogDir: /export/Logs/cfs-warn
+        storeDir: /export/Data/cfs/master/store
+
+    metanode:
+        hosts:
+            - 192.168.0.21
+            - 192.168.0.22
+            - 192.168.0.23
+            - 192.168.0.24
+        listen: 17020
+        prof: 17021
+        raftHeartbetPort: 17022
+        raftReplicaPort: 17023
+        totalMem: 107819316019
+        storeType: "1"
+        logLevel: "debug"
+        rocksDirs:
+            - /data3/cfs/meta/rocks
+            - /data4/cfs/meta/rocks
+            - /data5/cfs/meta/rocks
+        metadataDir: /data1/cfs/meta/data
+        raftDir: /data1/cfs/meta/raft
+        exporterPort: 17029
+
+    datanode:
+        hosts:
+            - 192.168.0.31
+            - 192.168.0.32
+            - 192.168.0.33
+            - 192.168.0.34
+        listen: 17030
+        prof: 17031
+        rack: "rack-01"
+        raftHeartbetPort: 17032
+        raftReplicaPort: 17033
+        logLevel: "debug"
+        disks:
+            - /data3/cfs/data/disk1:10737418240
+            - /data4/cfs/data/disk1:10737418240
+            - /data5/cfs/data/disk1:10737418240
+        metadataDir: /data1/cfs/meta/data
+        raftDir: /data1/cfs/meta/raft
+        exporterPort: 17029
+
+    client:
+        hosts:
+            - 192.168.0.31
+            - 192.168.0.32
+            - 192.168.0.33
+            - 192.168.0.34
+        mountPoint: /mnt/test
+        volName: test
+        logLevel: "debug"
+        owner: owner
+        writecache: false
+        keepcache: false
+
+    object:
+        hosts:
+            - 192.168.0.31
+            - 192.168.0.32
+            - 192.168.0.33
+            - 192.168.0.34
+        logLevel: "debug"
+        owner: owner
+
+    console:
+        hosts:
+            - 192.168.0.31
+            - 192.168.0.32
+            - 192.168.0.33
+            - 192.168.0.34
+        logLevel: "debug"
+

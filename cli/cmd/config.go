@@ -97,6 +97,7 @@ func newConfigSetCmd() *cobra.Command {
 	cmd.Flags().Uint16Var(&optTimeout, "timeout", 0, "Specify timeout for requests [Unit: s]")
 	return cmd
 }
+
 func newConfigInfoCmd() *cobra.Command {
 	var optFilterStatus string
 	var optFilterWritable string
