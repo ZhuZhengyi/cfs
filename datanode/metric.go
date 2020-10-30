@@ -26,12 +26,14 @@ const (
 )
 
 type DataNodeMetrics struct {
-	MetricIOBytes *exporter.Counter
+	MetricIOBytes *exporter.CounterVec
+	MetricIOTpc   *exporter.TimePointCountVec
 }
 
 func (d *DataNode) registerMetrics() {
 	d.metrics = &DataNodeMetrics{}
-	d.metrics.MetricIOBytes = exporter.NewCounter(MetricPartitionIOBytesName)
+	d.metrics.MetricIOBytes = exporter.NewCounterVec(MetricPartitionIOBytesName, "", []string{"disk", "vol", "partid", "type"})
+	d.metrics.MetricIOTpc = exporter.NewTPCntVec(MetricPartitionIOName, "", []string{"disk", "vol", "partid", "type"})
 }
 
 func GetIoMetricLabels(partition *DataPartition, tp string) map[string]string {
@@ -40,5 +42,14 @@ func GetIoMetricLabels(partition *DataPartition, tp string) map[string]string {
 		"vol":    partition.volumeID,
 		"partid": fmt.Sprintf("%d", partition.partitionID),
 		"type":   tp,
+	}
+}
+
+func GetIoMetricLabelVals(partition *DataPartition, tp string) []string {
+	return []string{
+		partition.disk.Path,
+		partition.volumeID,
+		fmt.Sprintf("%d", partition.partitionID),
+		tp,
 	}
 }

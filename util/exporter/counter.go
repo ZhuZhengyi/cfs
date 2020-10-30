@@ -88,3 +88,38 @@ func (c *Counter) Metric() prometheus.Counter {
 
 	return actualMetric.(prometheus.Counter)
 }
+
+type CounterVec struct {
+	*prometheus.CounterVec
+}
+
+func NewCounterVec(name, help string, labels []string) *CounterVec {
+	if !enabledPrometheus {
+		return nil
+	}
+	v := prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: metricsName(name),
+			Help: help,
+		},
+		labels,
+	)
+
+	if err := prometheus.Register(v); err != nil {
+		log.LogErrorf("prometheus register countervec name:%v, labels:{%v} error: %v", name, labels, err)
+		return nil
+	}
+
+	return &CounterVec{CounterVec: v}
+}
+
+//func (v *CounterVec) GetWithLabelValues(val float64, lvs []string) {
+//    if m, err := v.GetMetricWithLabelValues(lvs...); err == nil {
+//    }
+//}
+
+func (v *CounterVec) AddWithLabelValues(val float64, lvs []string) {
+	if m, err := v.GetMetricWithLabelValues(lvs...); err == nil {
+		m.Add(val)
+	}
+}
