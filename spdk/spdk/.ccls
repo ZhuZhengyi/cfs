@@ -1,0 +1,5 @@
+%clang
+-Wall
+%c -std=gnu11
+%cpp -std=c++11
+%cpp -stdlib=libc++

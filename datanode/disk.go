@@ -29,6 +29,7 @@ import (
 	"os"
 
 	"github.com/chubaofs/chubaofs/proto"
+	"github.com/chubaofs/chubaofs/storage"
 	"github.com/chubaofs/chubaofs/util/exporter"
 	"github.com/chubaofs/chubaofs/util/log"
 )
@@ -43,6 +44,7 @@ const ExpiredPartitionPrefix = "expired_"
 // Disk represents the structure of the disk
 type Disk struct {
 	sync.RWMutex
+	*storage.ExtentFs
 	Path        string
 	ReadErrCnt  uint64 // number of read errors
 	WriteErrCnt uint64 // number of write errors
@@ -67,9 +69,10 @@ type Disk struct {
 
 type PartitionVisitor func(dp *DataPartition)
 
-func NewDisk(path string, reservedSpace uint64, maxErrCnt int, space *SpaceManager) (d *Disk) {
+func NewDisk(fsType storage.ExtentFsType, path string, reservedSpace uint64, maxErrCnt int, space *SpaceManager) (d *Disk) {
 	d = new(Disk)
 	d.Path = path
+	d.ExtentFs = storage.NewExtentFs(path, fsType)
 	d.ReservedSpace = reservedSpace
 	d.MaxErrCnt = maxErrCnt
 	d.RejectWrite = false
@@ -80,8 +83,8 @@ func NewDisk(path string, reservedSpace uint64, maxErrCnt int, space *SpaceManag
 	d.startScheduleToUpdateSpaceInfo()
 	d.fixTinyDeleteRecordCh = make(chan struct{}, space.fixTinyDeleteRecordLimit)
 	d.fixTinyDeleteRecordLimit = space.fixTinyDeleteRecordLimit
-	d.repairTaskCh =make(chan struct{},MaxRepairTaskOnDisk)
-	for i:=0;i<MaxRepairTaskOnDisk;i++{
+	d.repairTaskCh = make(chan struct{}, MaxRepairTaskOnDisk)
+	for i := 0; i < MaxRepairTaskOnDisk; i++ {
 		d.repairTaskCh <- struct{}{}
 	}
 
@@ -95,24 +98,42 @@ func (d *Disk) PartitionCount() int {
 	return len(d.partitionMap)
 }
 
-func (d *Disk)canRepairOnDisk() bool {
+func (d *Disk) canRepairOnDisk() bool {
 	select {
-		case <-d.repairTaskCh:
-			return true
+	case <-d.repairTaskCh:
+		return true
 	default:
 		return false
 	}
 }
 
 func (d *Disk) fininshRepairTask() {
-	d.repairTaskCh<- struct{}{}
+	d.repairTaskCh <- struct{}{}
 }
 
+func (d *Disk) computeBlobFsUsage() (err error) {
+	d.RLock()
+	defer d.RUnlock()
+
+	d.NvmeDev.FsStat()
+
+	d.Total = atomic.LoadUint64(&d.NvmeDev.TotalSize)
+	d.Available = atomic.LoadUint64(&d.NvmeDev.FreeSize)
+	d.Used = d.Total - d.Available
+
+	return
+}
 
 // Compute the disk usage
 func (d *Disk) computeUsage() (err error) {
 	d.RLock()
 	defer d.RUnlock()
+
+	//add nvme disk usage
+	if d.IsBlobFs() {
+		return d.computeBlobFsUsage()
+	}
+
 	fs := syscall.Statfs_t{}
 	err = syscall.Statfs(d.Path, &fs)
 	if err != nil {

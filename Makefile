@@ -37,6 +37,7 @@ authtool: $(BIN_AUTHTOOL)
 cli: $(BIN_CLI)
 
 $(BIN_SERVER): $(COMMON_SRC) $(SERVER_SRC)
+	#@spdk/build.sh
 	@build/build.sh server
 
 $(BIN_CLIENT): $(COMMON_SRC) $(CLIENT_SRC)
@@ -54,11 +55,17 @@ $(BIN_CLI): $(COMMON_SRC) $(CLI_SRC)
 phony += clean
 clean:
 	@$(RM) build/bin
+	cd spdk && make clean
 
 phony += dist_clean
 dist-clean:
 	@$(RM) build/bin
 	@$(RM) build/out
+	cd spdk && make dist-clean
+
+phony += spdk
+spdk:
+	cd spdk && make
 
 phony += test
 test:

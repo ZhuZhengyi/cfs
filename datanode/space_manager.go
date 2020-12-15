@@ -26,6 +26,7 @@ import (
 
 	"github.com/chubaofs/chubaofs/proto"
 	"github.com/chubaofs/chubaofs/raftstore"
+	"github.com/chubaofs/chubaofs/storage"
 	"github.com/chubaofs/chubaofs/util"
 	"github.com/chubaofs/chubaofs/util/log"
 )
@@ -155,7 +156,7 @@ func (manager *SpaceManager) Stats() *Stats {
 	return manager.stats
 }
 
-func (manager *SpaceManager) LoadDisk(path string, reservedSpace uint64, maxErrCnt int) (err error) {
+func (manager *SpaceManager) LoadDisk(fsType storage.ExtentFsType, path string, reservedSpace uint64, maxErrCnt int) (err error) {
 	var (
 		disk    *Disk
 		visitor PartitionVisitor
@@ -170,7 +171,7 @@ func (manager *SpaceManager) LoadDisk(path string, reservedSpace uint64, maxErrC
 		}
 	}
 	if _, err = manager.GetDisk(path); err != nil {
-		disk = NewDisk(path, reservedSpace, maxErrCnt, manager)
+		disk = NewDisk(fsType, path, reservedSpace, maxErrCnt, manager)
 		disk.RestorePartition(visitor)
 		manager.putDisk(disk)
 		err = nil

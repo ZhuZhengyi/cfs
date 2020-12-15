@@ -242,7 +242,7 @@ func newDataPartition(dpCfg *dataPartitionCfg, disk *Disk) (dp *DataPartition, e
 		config:          dpCfg,
 	}
 	partition.replicasInit()
-	partition.extentStore, err = storage.NewExtentStore(partition.path, dpCfg.PartitionID, dpCfg.PartitionSize)
+	partition.extentStore, err = storage.NewExtentStore(disk.ExtentFs, partition.path, dpCfg.PartitionID, dpCfg.PartitionSize)
 	if err != nil {
 		return
 	}

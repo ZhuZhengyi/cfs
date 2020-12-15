@@ -3,7 +3,9 @@ FROM golang:1.12
 # intall rocksdb
 RUN     apt-get update && \
         apt-get -y install libz-dev libbz2-dev libsnappy-dev && \
-        apt-get -y install librocksdb-dev
+        apt-get -y install python3=3.8 python3-pip ninja-build && \
+        apt-get -y install librocksdb-dev && \
+        pip3 install meson
 
 ENV LTP_VERSION=20180926
 ENV LTP_SOURCE=https://github.com/linux-test-project/ltp/archive/${LTP_VERSION}.tar.gz
