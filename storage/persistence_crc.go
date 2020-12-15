@@ -52,7 +52,7 @@ func (s *ExtentStore) PersistenceBlockCrc(e *Extent, blockNo int, blockCrc uint3
 }
 
 func (s *ExtentStore) DeleteBlockCrc(extentID uint64) (err error) {
-	err = fallocate(int(s.verifyExtentFp.Fd()), FallocFLPunchHole|FallocFLKeepSize,
+	err = s.verifyExtentFp.Fallocate(FallocFLPunchHole|FallocFLKeepSize,
 		int64(util.BlockHeaderSize*extentID), util.BlockHeaderSize)
 
 	return
@@ -80,7 +80,7 @@ func (s *ExtentStore) PreAllocSpaceOnVerfiyFile(currExtentID uint64) {
 		prevAllocSpaceExtentID := int64(atomic.LoadUint64(&s.hasAllocSpaceExtentIDOnVerfiyFile))
 		endAllocSpaceExtentID := int64(prevAllocSpaceExtentID + 1000)
 		size := int64(1000 * util.BlockHeaderSize)
-		err := fallocate(int(s.verifyExtentFp.Fd()), 1, prevAllocSpaceExtentID*util.BlockHeaderSize, size)
+		err := s.verifyExtentFp.Fallocate(1, prevAllocSpaceExtentID*util.BlockHeaderSize, size)
 		if err != nil {
 			return
 		}

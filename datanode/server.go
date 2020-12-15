@@ -34,6 +34,7 @@ import (
 	"github.com/chubaofs/chubaofs/raftstore"
 	"github.com/chubaofs/chubaofs/repl"
 	masterSDK "github.com/chubaofs/chubaofs/sdk/master"
+	"github.com/chubaofs/chubaofs/storage"
 	"github.com/chubaofs/chubaofs/util"
 	"github.com/chubaofs/chubaofs/util/config"
 	"github.com/chubaofs/chubaofs/util/exporter"
@@ -225,9 +226,9 @@ func (s *DataNode) startSpaceManager(cfg *config.Config) (err error) {
 	for _, d := range cfg.GetSlice(ConfigKeyDisks) {
 		log.LogDebugf("action[startSpaceManager] load disk raw config(%v).", d)
 
-		// format "PATH:RESET_SIZE
+		// format "PATH:RESET_SIZE[:FS_TYPE]
 		arr := strings.Split(d.(string), ":")
-		if len(arr) != 2 {
+		if len(arr) < 2 {
 			return errors.New("Invalid disk configuration. Example: PATH:RESERVE_SIZE")
 		}
 		path := arr[0]
@@ -242,16 +243,20 @@ func (s *DataNode) startSpaceManager(cfg *config.Config) (err error) {
 		if err != nil {
 			return errors.New(fmt.Sprintf("Invalid disk reserved space. Error: %s", err.Error()))
 		}
+		fsType := storage.DiskDefaultFs
+		if len(arr) > 2 {
+			fsType = storage.ParseExtentFsType(arr[2])
+		}
 
 		if reservedSpace < DefaultDiskRetainMin {
 			reservedSpace = DefaultDiskRetainMin
 		}
 
 		wg.Add(1)
-		go func(wg *sync.WaitGroup, path string, reservedSpace uint64) {
+		go func(wg *sync.WaitGroup, path string, reservedSpace uint64, fsType storage.ExtentFsType) {
 			defer wg.Done()
-			s.space.LoadDisk(path, reservedSpace, DefaultDiskMaxErr)
-		}(&wg, path, reservedSpace)
+			s.space.LoadDisk(fsType, path, reservedSpace, DefaultDiskMaxErr)
+		}(&wg, path, reservedSpace, fsType)
 	}
 	wg.Wait()
 	return nil

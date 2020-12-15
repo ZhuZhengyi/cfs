@@ -59,7 +59,8 @@ func (ei *ExtentInfo) String() (m string) {
 // This extent implementation manages all header info and data body in one single entry file.
 // Header of extent include inode value of this extent block and Crc blocks of data blocks.
 type Extent struct {
-	file       *os.File
+	*ExtentFs
+	file       ExtentFile
 	filePath   string
 	extentID   uint64
 	modifyTime int64
@@ -70,10 +71,11 @@ type Extent struct {
 }
 
 // NewExtentInCore create and returns a new extent instance.
-func NewExtentInCore(name string, extentID uint64) *Extent {
+func NewExtentInCore(fs *ExtentFs, name string, extentID uint64) *Extent {
 	e := new(Extent)
 	e.extentID = extentID
 	e.filePath = name
+	e.ExtentFs = fs
 
 	return e
 }
@@ -93,28 +95,17 @@ func (e *Extent) Close() (err error) {
 	return
 }
 
-func (e *Extent) Exist() (exsit bool) {
-	_, err := os.Stat(e.filePath)
-	if err != nil {
-		if os.IsExist(err) {
-			return true
-		}
-		return false
-	}
-	return true
-}
-
 // InitToFS init extent data info filesystem. If entry file exist and overwrite is true,
 // this operation will clear all data of exist entry file and initialize extent header data.
 func (e *Extent) InitToFS() (err error) {
-	if e.file, err = os.OpenFile(e.filePath, ExtentOpenOpt, 0666); err != nil {
+	if e.file, err = e.OpenFile(e.filePath, ExtentOpenOpt, 0666); err != nil {
 		return err
 	}
 
 	defer func() {
 		if err != nil {
 			e.file.Close()
-			os.Remove(e.filePath)
+			e.RemoveFile(e.filePath)
 		}
 	}()
 
@@ -129,7 +120,7 @@ func (e *Extent) InitToFS() (err error) {
 
 // RestoreFromFS restores the entity data and status from the file stored on the filesystem.
 func (e *Extent) RestoreFromFS() (err error) {
-	if e.file, err = os.OpenFile(e.filePath, os.O_RDWR, 0666); err != nil {
+	if e.file, err = e.OpenFile(e.filePath, os.O_RDWR, 0666); err != nil {
 		if strings.Contains(err.Error(), syscall.ENOENT.Error()) {
 			err = ExtentNotFoundError
 		}
@@ -325,7 +316,7 @@ func (e *Extent) autoComputeExtentCrc(crcFunc UpdateCrcFunc) (crc uint32, err er
 }
 
 const (
-	PageSize          = 4 * util.KB
+	PageSize          = 4 * util.KB //TODO: blobfs pagesize
 	FallocFLKeepSize  = 1
 	FallocFLPunchHole = 2
 )
@@ -354,7 +345,7 @@ func (e *Extent) DeleteTiny(offset, size int64) (hasDelete bool, err error) {
 		hasDelete = true
 		return true, nil
 	}
-	err = fallocate(int(e.file.Fd()), FallocFLPunchHole|FallocFLKeepSize, offset, size)
+	err = e.file.Fallocate(FallocFLPunchHole|FallocFLKeepSize, offset, size)
 	return
 }
 
@@ -385,10 +376,10 @@ func (e *Extent) TinyExtentRecover(data []byte, offset, size int64, crc uint32, 
 			return fmt.Errorf("error empty packet on (%v) offset(%v) size(%v)"+
 				" isEmptyPacket(%v) filesize(%v) e.dataSize(%v)", e.file.Name(), offset, size, isEmptyPacket, finfo.Size(), e.dataSize)
 		}
-		if err = syscall.Ftruncate(int(e.file.Fd()), offset+size); err != nil {
+		if err = e.file.Ftruncate(offset + size); err != nil {
 			return err
 		}
-		err = fallocate(int(e.file.Fd()), FallocFLPunchHole|FallocFLKeepSize, offset, size)
+		err = e.file.Fallocate(FallocFLPunchHole|FallocFLKeepSize, offset, size)
 	} else {
 		_, err = e.file.WriteAt(data[:size], int64(offset))
 	}

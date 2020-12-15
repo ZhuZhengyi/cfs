@@ -29,6 +29,7 @@ import (
 	"os"
 
 	"github.com/chubaofs/chubaofs/proto"
+	"github.com/chubaofs/chubaofs/storage"
 	"github.com/chubaofs/chubaofs/util/exporter"
 	"github.com/chubaofs/chubaofs/util/log"
 )
@@ -38,12 +39,16 @@ var (
 	RegexpDataPartitionDir, _ = regexp.Compile("^datapartition_(\\d)+_(\\d)+$")
 )
 
-const ExpiredPartitionPrefix = "expired_"
+const (
+	ExpiredPartitionPrefix = "expired_"
+)
 
 // Disk represents the structure of the disk
 type Disk struct {
 	sync.RWMutex
-	Path        string
+	*storage.ExtentFs
+	Path string
+
 	ReadErrCnt  uint64 // number of read errors
 	WriteErrCnt uint64 // number of write errors
 
@@ -64,9 +69,10 @@ type Disk struct {
 
 type PartitionVisitor func(dp *DataPartition)
 
-func NewDisk(path string, reservedSpace uint64, maxErrCnt int, space *SpaceManager) (d *Disk) {
+func NewDisk(fsType storage.ExtentFsType, path string, reservedSpace uint64, maxErrCnt int, space *SpaceManager) (d *Disk) {
 	d = new(Disk)
 	d.Path = path
+	d.ExtentFs = storage.NewExtentFs(path, fsType)
 	d.ReservedSpace = reservedSpace
 	d.MaxErrCnt = maxErrCnt
 	d.RejectWrite = false
